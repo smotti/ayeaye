@@ -1,0 +1,109 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:           fakesmtp
+# Required-Start:     $network $syslog
+# Required-Stop:
+# Default-Start:      2 3 4 5
+# Default-Stop:       0 1 6
+# Short-Description:  A fake smtp server
+# Description:        A free fake smtp server for testing emails in applications easily.
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin
+DESC="FakeSMTP"
+DAEMON=/usr/local/bin/fakesmtp.jar
+SCRIPTNAME=/etc/init.d/fakesmtp
+PROCPATTERN=".*java -jar /usr/local/bin/fakesmtp.jar .*"
+LOG=/var/log/fakesmtp.log
+PORT=25
+EMAIL_DIR="/var/mail"
+ARGS="-s -b -p $PORT -o $EMAIL_DIR"
+
+[ -x "$DAEMON" ] || exit 0
+
+do_start()
+{
+  PIDS=($(pgrep -f "$PROCPATTERN"))
+  if [ ${#PIDS[@]} -gt 0 ]; then
+    return 1
+  else
+    java -jar $DAEMON $ARGS >> $LOG 2>&1 &
+    PID=$!
+    sleep 5
+    if [ -z "$(ps -p $PID -o pid=)" ]; then
+      wait $!
+      return 2
+    else
+      return 0
+    fi
+  fi
+}
+
+do_stop()
+{
+  PIDS=($(pgrep -f "$PROCPATTERN"))
+  PARENTPID=${PIDS[0]}
+  if [ ${#PIDS[@]} -eq 0 ]; then
+    return 1
+  else
+    kill -9 $PARENTPID || return 2
+  fi
+}
+
+do_status()
+{
+  PIDS=($(pgrep -f "$PROCPATTERN"))
+  if [ ${#PIDS[@]} -gt 0 ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+case "$1" in
+  start)
+    echo "Starting $DESC"
+    do_start
+    case "$?" in
+      0) echo "Started $DESC" && exit 0 ;;
+      1) echo "$DESC already running" && exit 1 ;;
+      2) echo "Failed to start $DESC" && exit 2 ;;
+    esac ;;
+
+  stop)
+    echo "Stopping $DESC"
+    do_stop
+    case "$?" in
+      0) echo "Stopped $DESC" && exit 0 ;;
+      1) echo "$DESC already stopped" && exit 1 ;;
+      2) echo "Failed to stop $DESC" && exit 2 ;;
+    esac ;;
+
+  status)
+      do_status
+      case "$?" in
+        0) echo "$DESC started" && exit 0 ;;
+        1) echo "$DESC stopped" && exit 0 ;;
+        2) echo "$DESC status unkown" && exit 2 ;;
+      esac ;;
+
+  restart)
+      echo "Restarting $DESC"
+      do_stop
+      case "$?" in
+        0|1)
+          do_start
+          case "$?" in
+            0) echo "Started $DESC" && exit 0 ;;
+            1) echo "$DESC already running" && exit 1 ;;
+            2) echo "Failed to start $DESC" && exit 2 ;;
+          esac ;;
+        *) exit $? ;;
+    esac ;;
+
+  *)
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart}" >&2
+    exit 3
+    ;;
+esac

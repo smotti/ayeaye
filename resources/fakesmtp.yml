@@ -1,0 +1,58 @@
+---
+
+- hosts: localhost
+  sudo: true
+  vars:
+    version: '2.0'
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Remove exim4
+      apt:
+        name: '{{ item }}'
+        state: absent
+      with_items:
+        - exim4
+        - exim4-base
+        - exim4-config
+        - exim4-daemon-light
+
+    - name: Install OpenJDK
+      apt:
+        name: openjdk-7-jre-headless
+        state: present
+        install_recommends: no
+
+    - name: Download FakeSMTP
+      get_url:
+        dest: /tmp/fakesmtp.zip
+        validate_certs: no
+        url: http://nilhcem.github.com/FakeSMTP/downloads/fakeSMTP-latest.zip
+
+    - name: Unzip FakeSMTP
+      shell: unzip /tmp/fakesmtp.zip -d /tmp
+      args:
+        creates: 'fakeSMTP-{{ version }}.jar'
+
+    - name: Copy fakeSMTP to /usr/local/bin
+      copy:
+        dest: /usr/local/bin/fakesmtp.jar
+        src: '/tmp/fakeSMTP-{{ version }}.jar'
+        mode: 555
+
+    - name: Copy service script to /etc/init.d
+      copy:
+        dest: /etc/init.d/fakesmtp
+        src: /vagrant/resources/fakesmtp_service_script
+        mode: 755
+        owner: root
+        group: root
+
+    - name: Start FakeSMTP
+      service:
+        name: fakesmtp
+        state: started
+        enabled: yes
