@@ -1,2 +1,4 @@
 .*.sw*
 .vagrant/
+__pycache__
+*.db
