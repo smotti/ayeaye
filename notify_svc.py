@@ -70,6 +70,10 @@ if __name__ == '__main__':
             _exit(1)
 
     # Run the http api.
-    APP.run()
+    try:
+        APP.run(host=args.listen, port=args.port)
+    except Exception as e:
+        logging.error(e)
+        logging.error('Failed to start HTTP API')
 
     exit(0)
