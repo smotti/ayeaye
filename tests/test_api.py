@@ -104,5 +104,70 @@ class ApiTestCaseWithTestData(unittest.TestCase):
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
 
 
+class ApiHandlersEmailTestCase(unittest.TestCase):
+
+    def insertTestData(self):
+        settings = dict(
+                smtp_server='127.0.0.1',
+                smtp_account='',
+                smtp_password='',
+                use_ssl=0,
+                use_auth=1)
+
+        cur = self.database.cursor()
+        cur.execute('''
+            INSERT INTO global_setting (handler_type, settings)
+            VALUES (1, ?)
+        ''', (json.dumps(settings), ))
+        cur.execute('''
+            INSERT INTO handler (topic, handler_type)
+            VALUES ('test', (SELECT id FROM handler_type WHERE name = 'email'))
+        ''')
+        self.database.commit()
+        cur.close()
+
+    def setUp(self):
+        self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['TESTING'] = True
+        self.app = APP.test_client()
+        with APP.app_context():
+            notify_svc.initializeDatabase(APP.config['DATABASE'])
+        self.database = sqlite3.connect(APP.config['DATABASE'])
+        self.insertTestData()
+
+    def tearDown(self):
+        self.database.close()
+        close(self.databaseFd)
+        unlink(APP.config['DATABASE'])
+
+    def testGetEmailHandlers(self):
+        rv = self.app.get('/handlers/email')
+        data = json.loads(rv.get_data().decode('utf-8'))
+
+        cur = self.database.cursor()
+        cur.execute('SELECT * FROM handler')
+        handlers = cur.fetchall()
+        cur.close()
+
+        self.assertEqual(len(data), len(handlers))
+        self.assertEqual(data[0][1], handlers[0][1])
+
+    def testAddEmailHandler(self):
+        handler = dict(topic='IRB', settings=dict(smtp_server='127.0.0.1'))
+        rv = self.app.post(
+                '/handlers/email',
+                data=json.dumps(handler),
+                content_type='application/json')
+        responseData = json.loads(rv.get_data().decode('utf-8'))
+
+        cur = self.database.cursor()
+        cur.execute('SELECT * FROM handler WHERE topic = \'IRB\'')
+        fromDatabase = cur.fetchone()
+
+        self.assertIsNotNone(fromDatabase)
+        self.assertEqual(responseData['topic'], fromDatabase[1])
+        self.assertEqual(rv.status_code, 200)
+        
+
 if __name__ == '__main__':
     unittest.main()

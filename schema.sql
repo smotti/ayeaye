@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS handler (
 );
 
 INSERT OR IGNORE INTO handler_type (name) VALUES ('email');
+
+-- Should we keep track of what notifications were send when and by which handler?

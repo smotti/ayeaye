@@ -54,6 +54,7 @@ def teardownDatabase(exception):
 from werkzeug.local import LocalProxy
 DATABASE = LocalProxy(getDatabase)
 
+
 class GlobalSettingsService(object):
 
     def __init__(self, db):
@@ -98,6 +99,51 @@ class GlobalSettingsService(object):
         return settings
 
 
+# TODO: Each handler (email, sms, ...) should be implemented in a separate
+# module
+class NotificationHandlerService(object):
+
+    def __init__(self, db):
+        self.db = db
+
+    def getEmailHandlers(self):
+        try:
+           cur = self.db.cursor()
+           cur.execute('''
+            SELECT * FROM handler
+                WHERE handler_type = (SELECT id FROM handler_type WHERE name = 'email')
+            ''')
+           handlers = cur.fetchall()
+        except sqlite3.Error as e:
+            APP.logger.error(e)
+            raise InternalError(str(e))
+        finally:
+            cur.close()
+
+        if handlers is None:
+            return []
+        else:
+            return handlers
+
+    def addEmailHandler(self, handler):
+        try:
+            cur = self.db.cursor()
+            cur.execute('''
+                INSERT INTO handler (topic, handler_type, settings)
+                VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'),
+                        ?)
+                ''',
+                (handler['topic'], json.dumps(handler['settings']), ))
+            self.db.commit()
+        except sqlite3.Error as e:
+            APP.logger.error(e)
+            raise InternalError(str(e))
+        finally:
+            cur.close()
+
+        return handler
+
+
 @APP.route('/settings/email', methods=['GET', 'PUT'])
 @responseMiddleware
 def settingsEmail():
@@ -107,5 +153,18 @@ def settingsEmail():
     elif request.method == 'PUT':
         gs = GlobalSettingsService(DATABASE)
         return gs.updateEmailSettings(request.get_json())
+    else:
+        raise TeapotError('I\'m a teapot')
+
+
+@APP.route('/handlers/email', methods=['GET', 'POST'])
+@responseMiddleware
+def handlersEmail():
+    if request.method == 'GET':
+        nhs = NotificationHandlerService(DATABASE)
+        return nhs.getEmailHandlers()
+    elif request.method == 'POST':
+        nhs = NotificationHandlerService(DATABASE)
+        return nhs.addEmailHandler(request.get_json())
     else:
         raise TeapotError('I\'m a teapot')
