@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS handler_type (
 
 CREATE TABLE IF NOT EXISTS global_setting (
   id INTEGER PRIMARY KEY,
-  handler_type INTEGER,
+  handler_type INTEGER UNIQUE,
   settings TEXT,
   FOREIGN KEY(handler_type) REFERENCES handler_type(id)
 );

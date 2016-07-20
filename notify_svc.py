@@ -13,7 +13,7 @@ LOG_FMT = '%(levelname)s %(asctime)s %(name)s %(filename)s:%(lineno)d %(message)
 LOG_DATEFMT = '%Y-%m-%dT%H:%M:%SZ'
 
 
-def createDatabase(databasePath):
+def initializeDatabase(databasePath):
     schemaPath = realpath(__file__).rsplit('/', 1)[0] + '/' + 'schema.sql'
     with open(schemaPath, 'r', encoding='utf-8') as f:
         schema = f.read()
@@ -58,12 +58,12 @@ if __name__ == '__main__':
     stdoutLogger.setFormatter(formatter)
     rootLogger.addHandler(stdoutLogger)
 
-    # Create a database if it doesn't exist yet.
+    # Initialize the database and create it, if it doesn't exist yet.
     try:
-        createDatabase(args.database)
+        initializeDatabase(args.database)
     except sqlite3.Error as e:
         logging.error(e)
-        logging.error('Failed to create database')
+        logging.error('Failed to initialize/create database')
         try:
             exit(1)
         except SystemExit:
@@ -71,6 +71,7 @@ if __name__ == '__main__':
 
     # Run the http api.
     try:
+        APP.config['DATABASE'] = args.database
         APP.run(host=args.listen, port=args.port)
     except Exception as e:
         logging.error(e)

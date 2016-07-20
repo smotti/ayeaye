@@ -24,8 +24,8 @@ class TestStartup(unittest.TestCase):
         if self._fileExists(TEST_DB):
             remove(TEST_DB)
 
-    def testCreateDatabase(self):
-        self.assertTrue(notify_svc.createDatabase(TEST_DB))
+    def testInitializeDatabase(self):
+        self.assertTrue(notify_svc.initializeDatabase(TEST_DB))
         self.assertTrue(self._fileExists(TEST_DB))
 
 
