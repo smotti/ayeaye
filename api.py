@@ -1,11 +1,17 @@
-from error import Error, InternalError
-from flask import Flask, request, Response
+from error import Error, InternalError, TeapotError
+from flask import Flask, request, Response, g
 from functools import wraps
 import json
 import sqlite3
 
 
 APP = Flask("notify-svc")
+
+
+def runApi(args):
+    APP.config['DATABASE'] = args.database
+    APP.run(host=args.listen, port=args.port)
+
 
 def responseMiddleware(func):
     @wraps(func)
@@ -25,14 +31,33 @@ def responseMiddleware(func):
     return wrapper
 
 
-# TODO: Right now the database connection is not being closed, but an
-# object is created for each individual request.
-# See how we can create maybe just one instance (singleton) and if the
-# sqlite3 connection is thread-safe.
+# We can't rely on the fact that sqlite3 is always compiled for threadsafe
+# operations. Thus we either use a queue or use the strange app context,
+# which the doc recommends for db connection even though it gets created &
+# destroyed for each individual request Oo.
+# Go with app context first because it's easier and can also be changed
+# easily in the future if we encounter any performance issues.
+def getDatabase():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(APP.config['DATABASE'])
+    return db
+
+
+@APP.teardown_appcontext
+def teardownDatabase(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+from werkzeug.local import LocalProxy
+DATABASE = LocalProxy(getDatabase)
+
 class GlobalSettingsService(object):
 
     def __init__(self, db):
-        self.db = sqlite3.connect(db)
+        self.db = db
 
     def getEmailSettings(self):
         try:
@@ -75,12 +100,12 @@ class GlobalSettingsService(object):
 
 @APP.route('/settings/email', methods=['GET', 'PUT'])
 @responseMiddleware
-def emailSettings():
+def settingsEmail():
     if request.method == 'GET':
-        gs = GlobalSettingsService(APP.config['DATABASE'])
+        gs = GlobalSettingsService(DATABASE)
         return gs.getEmailSettings()
     elif request.method == 'PUT':
-        gs = GlobalSettingsService(APP.config['DATABASE'])
+        gs = GlobalSettingsService(DATABASE)
         return gs.updateEmailSettings(request.get_json())
     else:
-        return 'no way'
+        raise TeapotError('I\'m a teapot')

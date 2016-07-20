@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from api import APP
+from api import runApi
 from argparse import ArgumentParser
 import logging
 from os import _exit
@@ -71,8 +71,7 @@ if __name__ == '__main__':
 
     # Run the http api.
     try:
-        APP.config['DATABASE'] = args.database
-        APP.run(host=args.listen, port=args.port)
+        runApi(args)
     except Exception as e:
         logging.error(e)
         logging.error('Failed to start HTTP API')

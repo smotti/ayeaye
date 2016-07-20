@@ -4,25 +4,29 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 import json
 import notify_svc
+from api import APP
 import sqlite3
 from tempfile import mkstemp
 import unittest
 
 
+
+
+
 class ApiTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.databaseFd, notify_svc.APP.config['DATABASE'] = mkstemp(suffix='test.db')
-        notify_svc.APP.config['TESTING'] = True
-        self.app = notify_svc.APP.test_client()
-        with notify_svc.APP.app_context():
-            notify_svc.initializeDatabase(notify_svc.APP.config['DATABASE'])
-        self.database = sqlite3.connect(notify_svc.APP.config['DATABASE'])
+        self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['TESTING'] = True
+        self.app = APP.test_client()
+        with APP.app_context():
+            notify_svc.initializeDatabase(APP.config['DATABASE'])
+        self.database = sqlite3.connect(APP.config['DATABASE'])
 
     def tearDown(self):
         self.database.close()
         close(self.databaseFd)
-        unlink(notify_svc.APP.config['DATABASE'])
+        unlink(APP.config['DATABASE'])
 
     def testInitializeDatabase(self):
         cur = self.database.cursor()
@@ -77,18 +81,18 @@ class ApiTestCaseWithTestData(unittest.TestCase):
         cur.close()
 
     def setUp(self):
-        self.databaseFd, notify_svc.APP.config['DATABASE'] = mkstemp(suffix='test.db')
-        notify_svc.APP.config['TESTING'] = True
-        self.app = notify_svc.APP.test_client()
-        with notify_svc.APP.app_context():
-            notify_svc.initializeDatabase(notify_svc.APP.config['DATABASE'])
-        self.database = sqlite3.connect(notify_svc.APP.config['DATABASE'])
+        self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['TESTING'] = True
+        self.app = APP.test_client()
+        with APP.app_context():
+            notify_svc.initializeDatabase(APP.config['DATABASE'])
+        self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 
     def tearDown(self):
         self.database.close()
         close(self.databaseFd)
-        unlink(notify_svc.APP.config['DATABASE'])
+        unlink(APP.config['DATABASE'])
 
     def testGetEmailSettings(self):
         rv = self.app.get('/settings/email')
