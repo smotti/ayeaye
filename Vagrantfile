@@ -7,6 +7,8 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "mail.medicustek.test"
   config.vm.network "private_network", ip: "172.16.0.5"
   config.vm.network "forwarded_port", guest: 25, host: 2525
+
+  config.vm.synced_folder "test_notifications/", "/var/mail"
   
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false 

@@ -16,13 +16,16 @@ class TestStartup(unittest.TestCase):
     def _fileExists(self, filePath):
         return path.isfile(filePath)
 
+
     def setUp(self):
         if self._fileExists(TEST_DB):
             remove(TEST_DB)
 
+
     def tearDown(self):
         if self._fileExists(TEST_DB):
             remove(TEST_DB)
+
 
     def testInitializeDatabase(self):
         self.assertTrue(notify_svc.initializeDatabase(TEST_DB))

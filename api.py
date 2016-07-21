@@ -1,7 +1,8 @@
-from error import Error, InternalError, TeapotError
+from error import Error, InternalError, TeapotError, UnavailableError
 from flask import Flask, request, Response, g
 from functools import wraps
 import json
+from mtemail import EmailNotificationService
 import sqlite3
 
 
@@ -60,6 +61,7 @@ class GlobalSettingsService(object):
     def __init__(self, db):
         self.db = db
 
+
     def getEmailSettings(self):
         try:
             cur = self.db.cursor()
@@ -80,6 +82,7 @@ class GlobalSettingsService(object):
         else:
             return json.loads(settings[0])
 
+
     def updateEmailSettings(self, settings):
         try:
             cur = self.db.cursor()
@@ -99,12 +102,11 @@ class GlobalSettingsService(object):
         return settings
 
 
-# TODO: Each handler (email, sms, ...) should be implemented in a separate
-# module
 class NotificationHandlerService(object):
 
     def __init__(self, db):
         self.db = db
+
 
     def getEmailHandlers(self):
         try:
@@ -125,6 +127,7 @@ class NotificationHandlerService(object):
         else:
             return handlers
 
+
     def addEmailHandler(self, handler):
         try:
             cur = self.db.cursor()
@@ -144,6 +147,57 @@ class NotificationHandlerService(object):
         return handler
 
 
+class NotificationService(object):
+
+    def __init__(self, topic, database):
+        self.db = database
+        self.topic = topic
+        self.notificationHandler = self.__getNotificationHandler(topic)
+
+
+    def sendNotification(self, notification):
+        return self.notificationHandler.sendNotification(notification)
+
+
+    def __getNotificationHandler(self, topic):
+        try:
+            cur = self.db.cursor() 
+            cur.execute('''
+                SELECT name, settings, handler_type FROM handler JOIN handler_type ON
+                    handler.handler_type = handler_type.id
+                    WHERE topic = ?
+            ''', (topic, ))
+            handler = cur.fetchone()
+        except sqlite3.Error as e:
+            APP.logger.error(str(e))
+            raise InternalError(str(e))
+        finally:
+            cur.close()
+
+        # If no settings were specified for that handler use the global ones
+        if (handler[1] is None) or (len(handler[1]) == 0):
+            try:
+                cur = self.db.cursor()
+                cur.execute('''
+                    SELECT settings FROM global_setting WHERE handler_type = ?
+                ''', (handler[2], ))
+                settings = cur.fetchone()
+            except sqlite3.Error as e:
+                APP.logger.error(str(e))
+                raise InternalError(str(e))
+            finally:
+                cur.close()
+
+            settings = json.loads(settings[0])
+        else:
+            settings = json.loads(handler[1])
+
+        if handler[0] == 'email':
+            return EmailNotificationService(settings)            
+        else:
+            raise UnavailableError('No notification handler found for topic')
+
+        
 @APP.route('/settings/email', methods=['GET', 'PUT'])
 @responseMiddleware
 def settingsEmail():
@@ -166,5 +220,16 @@ def handlersEmail():
     elif request.method == 'POST':
         nhs = NotificationHandlerService(DATABASE)
         return nhs.addEmailHandler(request.get_json())
+    else:
+        raise TeapotError('I\'m a teapot')
+
+
+# TODO: Get a list of all notifications send under the given topic.
+@APP.route('/notifications/<topic>', methods=['POST'])
+@responseMiddleware
+def notificationByTopic(topic=''):
+    if request.method == 'POST':
+        ns = NotificationService(topic, DATABASE)
+        return ns.sendNotification(request.get_json()) 
     else:
         raise TeapotError('I\'m a teapot')

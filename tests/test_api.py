@@ -1,4 +1,4 @@
-from os import path, close, unlink
+from os import path, close, unlink, listdir, remove
 import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -10,7 +10,21 @@ from tempfile import mkstemp
 import unittest
 
 
+TEST_NOTIFICATION_DIR = './test_notifications/'
 
+
+def getListOfNotifications(path):
+    return list(filter(lambda n: n != 'README.md', listdir(path)))
+
+
+def notificationReceived(title):
+    notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
+    for n in notifications:
+        with open(TEST_NOTIFICATION_DIR + n, 'r') as f:
+            for l in f:
+                if l.startswith('Subject: ' + title):
+                    return True
+    return False
 
 
 class ApiTestCase(unittest.TestCase):
@@ -23,10 +37,12 @@ class ApiTestCase(unittest.TestCase):
             notify_svc.initializeDatabase(APP.config['DATABASE'])
         self.database = sqlite3.connect(APP.config['DATABASE'])
 
+
     def tearDown(self):
         self.database.close()
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
+
 
     def testInitializeDatabase(self):
         cur = self.database.cursor()
@@ -35,10 +51,12 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(typeId, 1)
         self.assertEqual(typeName, 'email')
 
+
     def testGetEmailSettingsEmpty(self):
         rv = self.app.get('/settings/email')
         expected = json.loads('''{}''')
         self.assertEqual(expected, json.loads(rv.get_data().decode('utf-8')))
+
 
     def testPutEmailSettings(self):
         newSettings = dict(
@@ -80,6 +98,7 @@ class ApiTestCaseWithTestData(unittest.TestCase):
         self.database.commit()
         cur.close()
 
+
     def setUp(self):
         self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
         APP.config['TESTING'] = True
@@ -89,10 +108,12 @@ class ApiTestCaseWithTestData(unittest.TestCase):
         self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 
+
     def tearDown(self):
         self.database.close()
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
+
 
     def testGetEmailSettings(self):
         rv = self.app.get('/settings/email')
@@ -108,11 +129,23 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
 
     def insertTestData(self):
         settings = dict(
-                smtp_server='127.0.0.1',
-                smtp_account='',
-                smtp_password='',
-                use_ssl=0,
-                use_auth=1)
+                server='127.0.0.1',
+                port=2525,
+                account='',
+                password='',
+                toAddr=['norbert@medicustek.com'],
+                fromAddr='test@medicustek.com',
+                ssl=0,
+                auth=0)
+        handler = dict(
+                topic='TS',
+                settings=dict(
+                    smtp_server='127.0.0.1',
+                    smtp_port=2525,
+                    toAddr=['TS@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    use_ssl=0,
+                    use_auth=0))
 
         cur = self.database.cursor()
         cur.execute('''
@@ -123,8 +156,13 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
             INSERT INTO handler (topic, handler_type)
             VALUES ('test', (SELECT id FROM handler_type WHERE name = 'email'))
         ''')
+        cur.execute('''
+            INSERT INTO handler (topic, handler_type, settings)
+            VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'), ?)
+        ''', (handler['topic'], json.dumps(handler['settings']), ))
         self.database.commit()
         cur.close()
+
 
     def setUp(self):
         self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
@@ -135,10 +173,15 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 
+
     def tearDown(self):
         self.database.close()
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
+
+        notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
+        list(map(lambda n: remove(TEST_NOTIFICATION_DIR + n), notifications))
+
 
     def testGetEmailHandlers(self):
         rv = self.app.get('/handlers/email')
@@ -151,6 +194,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
 
         self.assertEqual(len(data), len(handlers))
         self.assertEqual(data[0][1], handlers[0][1])
+
 
     def testAddEmailHandler(self):
         handler = dict(topic='IRB', settings=dict(smtp_server='127.0.0.1'))
@@ -167,6 +211,22 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         self.assertIsNotNone(fromDatabase)
         self.assertEqual(responseData['topic'], fromDatabase[1])
         self.assertEqual(rv.status_code, 200)
+
+
+    def testSendNotificationWithGlobalSettings(self):
+        topic = 'test'
+        notification = dict(title='GlobalSettings', content='Test 1 2 3')
+        rv = self.app.post(
+                '/notifications/'+topic,
+                data=json.dumps(notification),
+                content_type='application/json')
+
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))
+
+
+    def testSendNotificationWithHandlerSettings(self):
+        pass
         
 
 if __name__ == '__main__':
