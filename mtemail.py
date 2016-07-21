@@ -15,7 +15,6 @@ class EmailNotificationService(object):
     def __init__(self, settings):
         settingsKeys = settings.keys()
         if any(list(map(lambda k: k not in settingsKeys, self.requiredKeys))):
-            LOGGER.warning('Missing attribute: '+COMMASPACE.join(settingsKeys))
             raise MissingAttributeError(
                     '''Required attributes: server, port, toAddr, fromAddr, ssl, auth''')
 
