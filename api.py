@@ -1,6 +1,6 @@
 from appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
-from error import Error, InternalError, TeapotError
+from error import Error, InternalError, TeapotError, NotFoundError
 from flask import Flask, request, Response, g
 from functools import wraps
 import json
@@ -55,6 +55,30 @@ def teardownDatabase(exception):
 
 from werkzeug.local import LocalProxy
 DATABASE = LocalProxy(getDatabase)
+
+
+@APP.errorhandler(404)
+@responseMiddleware
+def pageNotFound(e):
+    raise NotFoundError('The endpoint you\'re trying to reach is not found.')
+
+
+@APP.errorhandler(405)
+@responseMiddleware
+def methodNotFound(e):
+    raise NotFoundError('The endpoint you\'re trying to reach is not found.')
+
+
+@APP.errorhandler(500)
+@responseMiddleware
+def internalError(e):
+    raise InternalError('Oops...Something went wrong')
+
+
+@APP.errorhandler(418)
+@responseMiddleware
+def teapot():
+    return TeapotError('''I'm a teapot.''')
 
 
 @APP.route('/settings/email', methods=['GET', 'PUT'])
