@@ -3,6 +3,7 @@ from error import Error, AuthenticationError, InternalError, MissingAttributeErr
         UnknownError
 from logging import getLogger
 import smtplib
+import ssl
 
 
 LOGGER = getLogger('mtemail')
@@ -11,13 +12,14 @@ COMMASPACE = ', '
 
 class EmailNotificationService(object):
 
-    requiredKeys = ['server', 'port', 'toAddr', 'fromAddr', 'ssl', 'auth']
+    requiredKeys = ['server', 'port', 'toAddr', 'fromAddr', 'ssl', 'auth',
+            'starttls']
 
     def __init__(self, settings):
         settingsKeys = settings.keys()
         if any(list(map(lambda k: k not in settingsKeys, self.requiredKeys))):
             raise MissingAttributeError(
-                    '''Required attributes: server, port, toAddr, fromAddr, ssl, auth''')
+                    '''Required attributes: server, port, toAddr, fromAddr, ssl, auth, starttls''')
 
         self.settings = settings
         self.timeout = 10 # In seconds
@@ -35,19 +37,24 @@ class EmailNotificationService(object):
         msg['From'] = settings['fromAddr']
         msg['To'] = COMMASPACE.join(settings['toAddr'])
 
-        # The following code is quite ugly :/. Reminds me of Go :D.
         try:
-            if settings['ssl']:
+            s = None
+
+            if 'ssl' in settings and settings['ssl'] and not settings['starttls']:
                 s = smtplib.SMTP_SSL(host=settings['server'], port=settings['port'],
                         timeout=self.timeout)
             else:
                 s = smtplib.SMTP(host=settings['server'], port=settings['port'],
                         timeout=self.timeout)
 
-            if settings['auth'] and ('user' in settings and 'password' in settings):
-                s.login(settings['user'], settings['password'])
-                raise MissingAttributeError('No user/password supplied')
+            if 'starttls' in settings and settings['starttls']:
+                s.starttls()
 
+            if settings['auth'] and ('user' in settings and 'password' in settings):
+                if 'user' in settings and 'password' in settings:
+                    s.login(settings['user'], settings['password'])
+                else:
+                    raise MissingAttributeError('No user/password supplied')
 
             s.sendmail(settings['fromAddr'], settings['toAddr'], msg.as_string())
         except smtplib.SMTPConnectError as e:
@@ -64,9 +71,9 @@ class EmailNotificationService(object):
             raise e
         except Exception as e:
             LOGGER.error(str(e))
-            raise UnkownError('Woops, don\'t know what happened :/.')
+            raise UnkownError('Oops, ... Something went wrong!')
         else:
             return True
         finally:
-            s.quit()
-
+            if s is not None:
+                s.quit()

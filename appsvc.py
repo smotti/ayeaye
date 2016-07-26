@@ -1,4 +1,4 @@
-from error import InternalError, UnavailableError
+from error import InternalError, UnavailableError, NotFoundError
 import json
 from mtemail import EmailNotificationService
 import sqlite3
@@ -121,6 +121,9 @@ class NotificationService(object):
             raise InternalError(str(e))
         finally:
             cur.close()
+
+        if handler is None:
+            raise NotFoundError('No such topic '+topic)
 
         # If no settings were specified for that handler use the global ones
         if (handler[1] is None) or (len(handler[1]) == 0):

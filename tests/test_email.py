@@ -3,42 +3,82 @@ import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 from mtemail import EmailNotificationService
+from time import sleep
 import unittest
 
 
-TEST_NOTIFICATION_DIR = './test_notifications/'
-
-
-def getListOfNotifications(path):
-    return list(filter(lambda n: n != 'README.md', listdir(path)))
+TEST_NOTIFICATION_FILE = './test_notifications/vagrant'
+MAIL_USER = 'vagrant'
+MAIL_PASSWORD = 'vagrant'
 
 
 def notificationReceived(title):
-    notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
-    for n in notifications:
-        with open(TEST_NOTIFICATION_DIR + n, 'r') as f:
-            for l in f:
-                if l.startswith('Subject: ' + title):
-                    return True
+    with open(TEST_NOTIFICATION_FILE, 'r') as f:
+        for l in f:
+            if l.startswith('Subject: ' + title):
+                return True
     return False
 
 
 class EmailNotificationServiceTestCase(unittest.TestCase):
 
     def tearDown(self):
-        notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
-        list(map(lambda n: remove(TEST_NOTIFICATION_DIR + n), notifications))
+        remove(TEST_NOTIFICATION_FILE)
 
 
     def testSendNotificationNoAuth(self):
         settings = dict(
                 server='127.0.0.1', port=2525, toAddr=['test@medicustek.com'],
-                fromAddr='norbert@medicustek.com', auth=False, ssl=False)
+                fromAddr='norbert@medicustek.com', auth=False, ssl=False, starttls=False)
         ens = EmailNotificationService(settings)
 
         notification = dict(content='Hello World', title='TEST')
         result = ens.sendNotification(notification)
 
+        sleep(1)
+        self.assertTrue(result)
+        self.assertTrue(notificationReceived(notification['title']))
+
+
+    def testSendNotificationUsingAUTH(self):
+        settings = dict(
+                server='127.0.0.1', port=2525, toAddr=['test@medicustek.com'],
+                fromAddr='norbert@medicustek.com', auth=True, ssl=False,
+                starttls=False, user=MAIL_USER, password=MAIL_PASSWORD)
+        ens = EmailNotificationService(settings)
+
+        notification = dict(content='Hello World', title='TEST')
+        result = ens.sendNotification(notification)
+
+        sleep(1)
+        self.assertTrue(result)
+        self.assertTrue(notificationReceived(notification['title']))
+
+
+    def testSendNotificationUsingStartTLS(self):
+        settings = dict(
+                server='127.0.0.1', port=2525, toAddr=['test@medicustek.com'],
+                fromAddr='norbert@medicustek.com', auth=False, ssl=False, starttls=True)
+        ens = EmailNotificationService(settings)
+
+        notification = dict(content='Hello World', title='TEST')
+        result = ens.sendNotification(notification)
+
+        sleep(1)
+        self.assertTrue(result)
+        self.assertTrue(notificationReceived(notification['title']))
+
+
+    def testSendNotificationUsingSMTPS(self):
+        settings = dict(
+                server='127.0.0.1', port=4650, toAddr=['test@medicustek.com'],
+                fromAddr='norbert@medicustek.com', auth=False, ssl=True, starttls=False)
+        ens = EmailNotificationService(settings)
+
+        notification = dict(content='Hello World', title='TEST')
+        result = ens.sendNotification(notification)
+
+        sleep(1)
         self.assertTrue(result)
         self.assertTrue(notificationReceived(notification['title']))
 

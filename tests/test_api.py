@@ -7,23 +7,20 @@ import notify_svc
 from api import APP
 import sqlite3
 from tempfile import mkstemp
+from time import sleep
 import unittest
 
 
-TEST_NOTIFICATION_DIR = './test_notifications/'
-
-
-def getListOfNotifications(path):
-    return list(filter(lambda n: n != 'README.md', listdir(path)))
+TEST_NOTIFICATION_FILE = './test_notifications/vagrant'
+MAIL_USER = 'vagrant'
+MAIL_PASSWORD = 'vagrant'
 
 
 def notificationReceived(title):
-    notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
-    for n in notifications:
-        with open(TEST_NOTIFICATION_DIR + n, 'r') as f:
-            for l in f:
-                if l.startswith('Subject: ' + title):
-                    return True
+    with open(TEST_NOTIFICATION_FILE, 'r') as f:
+        for l in f:
+            if l.startswith('Subject: ' + title):
+                return True
     return False
 
 
@@ -136,16 +133,18 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
                 toAddr=['norbert@medicustek.com'],
                 fromAddr='test@medicustek.com',
                 ssl=0,
-                auth=0)
+                auth=0,
+                starttls=0)
         handler = dict(
                 topic='TS',
                 settings=dict(
-                    smtp_server='127.0.0.1',
-                    smtp_port=2525,
+                    server='127.0.0.1',
+                    port=2525,
                     toAddr=['TS@medicustek.com'],
                     fromAddr='test@medicustek.com',
-                    use_ssl=0,
-                    use_auth=0))
+                    ssl=0,
+                    auth=0,
+                    starttls=0))
 
         cur = self.database.cursor()
         cur.execute('''
@@ -179,9 +178,6 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
 
-        notifications = getListOfNotifications(TEST_NOTIFICATION_DIR)
-        list(map(lambda n: remove(TEST_NOTIFICATION_DIR + n), notifications))
-
 
     def testGetEmailHandlers(self):
         rv = self.app.get('/handlers/email')
@@ -213,6 +209,89 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         self.assertEqual(rv.status_code, 200)
 
 
+class ApiSendNotificationTestCase(unittest.TestCase):
+
+    def insertTestData(self):
+        settings = dict(
+                server='127.0.0.1',
+                port=2525,
+                account='',
+                password='',
+                toAddr=['norbert@medicustek.com'],
+                fromAddr='test@medicustek.com',
+                ssl=0,
+                auth=0,
+                starttls=0)
+        handler = dict(
+                topic='TS',
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['TS@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=0,
+                    starttls=0))
+        authHandler = dict(
+                topic='IRB',
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['IRB@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=1,
+                    starttls=0,
+                    user=MAIL_USER,
+                    password=MAIL_PASSWORD))
+        sslHandler = dict(
+                topic='CRA',
+                settings=dict(
+                    server='127.0.0.1',
+                    port=4650,
+                    toAddr=['CRA@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=1,
+                    auth=0,
+                    starttls=0))
+        handlers = [handler, authHandler, sslHandler]
+
+        cur = self.database.cursor()
+        cur.execute('''
+            INSERT INTO global_setting (handler_type, settings)
+            VALUES (1, ?)
+        ''', (json.dumps(settings), ))
+        cur.execute('''
+            INSERT INTO handler (topic, handler_type)
+            VALUES ('test', (SELECT id FROM handler_type WHERE name = 'email'))
+        ''')
+        for h in handlers:
+            cur.execute('''
+                INSERT INTO handler (topic, handler_type, settings)
+                VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'), ?)
+            ''', (h['topic'], json.dumps(h['settings']), ))
+        self.database.commit()
+        cur.close()
+
+
+    def setUp(self):
+        self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['TESTING'] = True
+        self.app = APP.test_client()
+        with APP.app_context():
+            notify_svc.initializeDatabase(APP.config['DATABASE'])
+        self.database = sqlite3.connect(APP.config['DATABASE'])
+        self.insertTestData()
+
+
+    def tearDown(self):
+        self.database.close()
+        close(self.databaseFd)
+        unlink(APP.config['DATABASE'])
+
+        remove(TEST_NOTIFICATION_FILE)
+
+
     def testSendNotificationWithGlobalSettings(self):
         topic = 'test'
         notification = dict(title='GlobalSettings', content='Test 1 2 3')
@@ -220,14 +299,36 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-
+        
+        sleep(1)
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
 
 
     def testSendNotificationWithHandlerSettings(self):
-        pass
+        topic = 'TS'
+        notification = dict(title='HandlerSettings', content='Test 1 2 3')
+        rv = self.app.post(
+                '/notifications/'+topic,
+                data=json.dumps(notification),
+                content_type='application/json')
         
+        sleep(1)
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))       
+
+
+    def testSendNotificationUsingSMTPAUTH(self):
+        topic = 'IRB'
+        notification = dict(title='Authentication', content='Test 1 2 3')
+        rv = self.app.post(
+                '/notifications/'+topic,
+                data=json.dumps(notification),
+                content_type='application/json')
+        
+        sleep(1)
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))
 
 if __name__ == '__main__':
     unittest.main()
