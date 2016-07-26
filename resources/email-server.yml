@@ -1,0 +1,88 @@
+---
+
+- hosts: localhost
+  sudo: true
+  vars:
+    cert_subj: '/C=TW/ST=TPE/L=Taipei/O=MedicusTek Inc/OU=Cloud R&D/CN=10.0.2.15'
+  tasks:
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Set postfix option type as internet site
+      debconf:
+        name: postfix
+        question: 'postfix/main_mailer_type'
+        value: '"Internet Site"'
+        vtype: 'string'
+
+    - name: Set postfix hostname
+      debconf:
+        name: postfix
+        question: 'postfix/mailname'
+        value: '{{ ansible_fqdn }}'
+        vtype: 'string'
+
+    - name: Install postfix
+      apt:
+        name: postfix
+        install_recommends: no
+        state: present
+
+    - name: Install SASL for SMTP AUTH
+      apt:
+        name: '{{ item }}'
+        state: present
+        install_recommends: no
+      with_items:
+        - libsasl2-2
+        - libsasl2-modules
+        - sasl2-bin
+
+  #    - name: Start SASL daemon on boot
+  #    lineinfile:
+  #      dest: /etc/default/saslauthd
+  #      line: 'START=yes'
+  #      regexp: '^START=no$'
+  #      state: present
+
+    - name: Create SSL certificate
+      script: /vagrant/resources/create-ssl-cert.sh
+
+    - name: Copy config files
+      copy:
+        dest: '{{ item.dest }}'
+        src: '{{ item.src }}'
+        mode: 644
+        owner: root
+        group: root
+      with_items:
+        - { 'dest': '/etc/postfix/main.cf', 'src': '/vagrant/resources/main.cf' }
+        - { 'dest': '/etc/postfix/virtual_forwardings', 'src': '/vagrant/resources/virtual_forwardings' }
+        - { 'dest': '/etc/postfix/sasl/smtpd.conf', 'src': '/vagrant/resources/smtpd.conf' }
+        - { 'dest': '/etc/postfix/master.cf', 'src': '/vagrant/resources/master.cf' }
+
+    - name: Move saslauthd socket into postfix chroot env
+      script: /vagrant/resources/move_saslauthd_socket.sh creates=/var/spool/postfix/var/run/saslauthd
+
+    - name: Add postfix to sasl group
+      user:
+        append: yes
+        groups: sasl
+        name: postfix
+
+    - name: Set vagrant password to vagrant (required for mail auth)
+      user:
+        name: vagrant
+        password: '$6$w5oNizgb$wNhc91W4SvV/qtpE0n3WR2PJZAuzsMDxsO/2UpYp7anJqzdq5Zt5SObSS64IALFU8D4JckaOoV/gqpC7cADdl.'
+
+    - name: Restart postfix
+      service:
+        name: postfix
+        state: restarted
+
+    - name: Restart saslauthd
+      service:
+        name: saslauthd
+        state: restarted

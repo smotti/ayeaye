@@ -1,0 +1,4 @@
+START=yes
+DESC="SASL Auth. Daemon for Postfix"
+NAME="saslauthd-postf"
+OPTIONS="-c -m /var/spool/postfix/var/run/saslauthd"

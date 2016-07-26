@@ -16,8 +16,8 @@ DAEMON=/usr/local/bin/fakesmtp.jar
 SCRIPTNAME=/etc/init.d/fakesmtp
 PROCPATTERN=".*java -jar /usr/local/bin/fakesmtp.jar .*"
 LOG=/var/log/fakesmtp.log
-PORT=25
-EMAIL_DIR="/var/mail"
+PORT=2525
+EMAIL_DIR="/home/vagrant/mail"
 ARGS="-s -b -p $PORT -o $EMAIL_DIR"
 
 [ -x "$DAEMON" ] || exit 0
