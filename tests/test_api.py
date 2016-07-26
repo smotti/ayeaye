@@ -330,5 +330,18 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
 
+    def testSendNotificationUsingSMTPS(self):
+        topic = 'CRA'
+        notification = dict(title='SMTPS', content='Test 1 2 3')
+        rv = self.app.post(
+                '/notifications/'+topic,
+                data=json.dumps(notification),
+                content_type='application/json')
+        
+        sleep(1)
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))
+
+
 if __name__ == '__main__':
     unittest.main()

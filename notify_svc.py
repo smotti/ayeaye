@@ -62,8 +62,8 @@ if __name__ == '__main__':
     try:
         initializeDatabase(args.database)
     except sqlite3.Error as e:
-        logging.error(e)
-        logging.error('Failed to initialize/create database')
+        rootLogger.error(e)
+        rootLogger.error('Failed to initialize/create database')
         try:
             exit(1)
         except SystemExit:
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     try:
         runApi(args)
     except Exception as e:
-        logging.error(e)
-        logging.error('Failed to start HTTP API')
+        rootLogger.error(e)
+        rootLogger.error('Failed to start HTTP API')
 
     exit(0)
