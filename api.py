@@ -22,7 +22,10 @@ def responseMiddleware(func):
     def wrapper(*args, **kwargs):
         try:
             result = func(*args, **kwargs)
-            return Response(json.dumps(result), content_type='application/json')
+            if isinstance(result, (dict, list)):
+                return Response(json.dumps(result), content_type='application/json')
+            else:
+                return Response(content_type='application/json')
         except Error as e:
             LOGGER.error(e)
             return Response(json.dumps(e.toDict()), status=e.code,
