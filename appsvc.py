@@ -72,7 +72,7 @@ class NotificationHandlerService(object):
         try:
            cur = self.db.cursor()
            cur.execute('''
-            SELECT * FROM handler
+            SELECT topic, settings FROM handler
                 WHERE handler_type = (SELECT id FROM handler_type WHERE name = 'email')
             ''')
            handlers = cur.fetchall()
@@ -85,7 +85,11 @@ class NotificationHandlerService(object):
         if handlers is None:
             return []
         else:
-            return [rowToDict(row) for row in handlers]
+            handlers = [rowToDict(row) for row in handlers]
+            list(map(
+                lambda h: h.update(dict(settings=json.loads(h['settings']))),
+                handlers))
+            return handlers
 
 
     def addEmailHandler(self, handler):
