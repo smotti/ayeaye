@@ -7,7 +7,7 @@ import notify_svc
 from api import APP
 import sqlite3
 from tempfile import mkstemp
-from time import sleep
+from time import sleep, time
 import unittest
 
 
@@ -84,14 +84,47 @@ class ApiTestCase(unittest.TestCase):
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
 
 
-class ApiTestCaseWithTestData(unittest.TestCase):
+class ApiWithTestData(unittest.TestCase):
 
     def insertTestData(self):
+        tsHandler = dict(
+                topic='TS',
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['TS@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=0,
+                    starttls=0))
+        irbHandler = dict(
+                topic='IRB',
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['IRB@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=0,
+                    starttls=0))
+        handlers = [tsHandler, irbHandler]
+        notifications = [
+                (10, 'TS', 'N1', 'C1'), (15, 'TS', 'N2', 'C2'),
+                (20, 'IRB', 'N3', 'C3'), (25, 'IRB', 'N4', 'C4')]
         cur = self.database.cursor()
         cur.execute('''
             INSERT INTO global_setting (handler_type, settings)
             VALUES (1, '{"smtp_server": "", "smtp_account": "", "smtp_password": "", "use_ssl": 0, "use_auth": 1}')
         ''')
+        cur.executemany('''
+            INSERT INTO notification_archive (time, topic, title, content)
+            VALUES (?, ?, ?, ?)
+            ''', notifications)
+        for h in handlers:
+            cur.execute('''
+                INSERT INTO handler (topic, handler_type, settings)
+                VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'), ?)
+            ''', (h['topic'], json.dumps(h['settings']), ))
         self.database.commit()
         cur.close()
 
@@ -120,6 +153,36 @@ class ApiTestCaseWithTestData(unittest.TestCase):
         ''')
         self.assertEqual(sorted(expected),
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
+
+
+    def testNotificationHistoryByTopic(self):
+        rv = self.app.get('/notifications/TS')
+        data = json.loads(rv.get_data().decode('utf-8'))
+
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(2, len(data))
+
+
+    def testNotificationHistoryByTime(self):
+        rv = self.app.get('/notifications/IRB?fromTime=10&toTime=30')
+        data = json.loads(rv.get_data().decode('utf-8'))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(2, len(data))
+
+        rv = self.app.get('/notifications/IRB?fromTime=15')
+        data = json.loads(rv.get_data().decode('utf-8'))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(2, len(data))
+
+        rv = self.app.get('/notifications/?fromTime=15&toTime=30')
+        data = json.loads(rv.get_data().decode('utf-8'))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(3, len(data))
+
+        rv = self.app.get('/notifications/')
+        data = json.loads(rv.get_data().decode('utf-8'))
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(4, len(data))
 
 
 class ApiHandlersEmailTestCase(unittest.TestCase):

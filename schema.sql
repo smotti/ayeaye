@@ -12,10 +12,18 @@ CREATE TABLE IF NOT EXISTS global_setting (
 
 CREATE TABLE IF NOT EXISTS handler (
   id INTEGER PRIMARY KEY,
-  topic VARCHAR(32) UNIQUE,
   handler_type INTEGER,
+  topic VARCHAR(32) UNIQUE,
   settings TEXT,
   FOREIGN KEY(handler_type) REFERENCES handler_type(id)
+);
+
+CREATE TABLE IF NOT EXISTS notification_archive (
+  id INTEGER PRIMARY KEY,
+  time INTEGER,
+  topic VARCHAR(32),
+  title VARCHAR(1024),
+  content TEXT
 );
 
 INSERT OR IGNORE INTO handler_type (name) VALUES ('email');

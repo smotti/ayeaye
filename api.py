@@ -43,6 +43,7 @@ def getDatabase():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(APP.config['DATABASE'])
+        db.row_factory = sqlite3.Row
     return db
 
 
@@ -107,12 +108,37 @@ def handlersEmail():
         raise TeapotError('I\'m a teapot')
 
 
-# TODO: Get a list of all notifications send under the given topic.
-@APP.route('/notifications/<topic>', methods=['POST'])
+@APP.route('/notifications/', methods=['GET'])
+@responseMiddleware
+def notifications():
+    if request.method == 'GET':
+        ns = NotificationService(database=DATABASE)
+        args = request.args.to_dict()
+        timeRange = {}
+        list(map(
+            lambda t: timeRange.update({t[0] : t[1]}),
+            [t for t in args.items() if t[0] in ['fromTime', 'toTime']]))
+        return ns.aNotificationHistoryByTime(**timeRange)
+    else:
+        raise TeapotError('I\'m a teapot')
+
+
+@APP.route('/notifications/<topic>', methods=['POST', 'GET'])
 @responseMiddleware
 def notificationByTopic(topic=''):
     if request.method == 'POST':
         ns = NotificationService(topic, DATABASE)
         return ns.sendNotification(request.get_json()) 
+    elif request.method == 'GET':
+        ns = NotificationService(topic, DATABASE)
+        args = request.args.to_dict()
+        if 'fromTime' in args or 'toTime' in args:
+            timeRange = {}
+            list(map(
+                lambda t: timeRange.update({t[0] : t[1]}),
+                [t for t in args.items() if t[0] in ['fromTime', 'toTime']]))
+            return ns.aNotificationHistoryByTopicAndTime(topic, **timeRange)
+        else:
+            return ns.aNotificationHistory()
     else:
         raise TeapotError('I\'m a teapot')
