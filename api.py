@@ -4,10 +4,12 @@ from error import Error, InternalError, TeapotError, NotFoundError
 from flask import Flask, request, Response, g
 from functools import wraps
 import json
+from logging import getLogger
 import sqlite3
 
 
-APP = Flask("notify-svc")
+LOGGER = getLogger('api')
+APP = Flask("ayeaye")
 
 
 def runApi(args):
@@ -22,11 +24,11 @@ def responseMiddleware(func):
             result = func(*args, **kwargs)
             return Response(json.dumps(result), content_type='application/json')
         except Error as e:
-            APP.logger.error(e)
+            LOGGER.error(e)
             return Response(json.dumps(e.toDict()), status=e.code,
                     content_type='application/json')
         except Exception as e:
-            APP.logger.error(e)
+            LOGGER.error(e)
             error = InternalError(str(e))
             return Response(json.dumps(error.toDict()), status=error.code,
                     content_type='application/json')
