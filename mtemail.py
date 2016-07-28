@@ -35,18 +35,18 @@ class EmailNotificationService(object):
         try:
             s = None
 
-            if settings['ssl'] and not settings['starttls']:
+            if self.settings['ssl'] and not self.settings['starttls']:
                 s = smtplib.SMTP_SSL(host=self.settings['server'],
                         port=self.settings['port'], timeout=self.timeout)
             else:
-                s = smtplib.SMTP(host=settings['server'], port=settings['port'],
+                s = smtplib.SMTP(host=self.settings['server'], port=self.settings['port'],
                         timeout=self.timeout)
 
             if self.settings['starttls']:
                 s.starttls()
 
-            if settings['auth']:
-                if 'user' in self.settings and 'password' in settings:
+            if self.settings['auth']:
+                if 'user' in self.settings and 'password' in self.settings:
                     s.login(self.settings['user'], self.settings['password'])
                 else:
                     raise MissingAttributeError('No user/password supplied')
@@ -66,7 +66,7 @@ class EmailNotificationService(object):
             raise e
         except Exception as e:
             LOGGER.error(str(e))
-            raise UnkownError('Oops, ... Something went wrong!')
+            raise UnknownError('Oops, ... Something went wrong!')
         else:
             return True
         finally:

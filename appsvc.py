@@ -85,7 +85,7 @@ class NotificationHandlerService(object):
         if handlers is None:
             return []
         else:
-            return handlers
+            return [rowToDict(row) for row in handlers]
 
 
     def addEmailHandler(self, handler):
@@ -144,15 +144,18 @@ class NotificationService(object):
             cur = self.db.cursor()
 
             if toTime is not None and fromTime is None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed 
+                    FROM notification_archive
                     WHERE topic = ? and time <= ?'''
                 cur.execute(qry, (topic, toTime, ))
             elif toTime is not None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive
                     WHERE topic = ? and time >= ? and time <= ?'''
                 cur.execute(qry, (topic, fromTime, toTime, ))
             elif toTime is None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive
                     WHERE topic = ? and time >= ?'''
                 cur.execute(qry, (topic, fromTime, ))
             else:
@@ -176,19 +179,23 @@ class NotificationService(object):
             cur = self.db.cursor()
 
             if toTime is not None and fromTime is None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive
                     WHERE time <= ?'''
                 cur.execute(qry, (toTime, ))
             elif toTime is not None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive
                     WHERE time >= ? and time <= ?'''
                 cur.execute(qry, (fromTime, toTime, ))
             elif toTime is None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content FROM notification_archive
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive
                     WHERE time >= ?'''
                 cur.execute(qry, (fromTime, ))
             else:
-                 qry = '''SELECT time, topic, title, content FROM notification_archive'''
+                 qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive'''
                  cur.execute(qry)
             
             notifications = cur.fetchall()
@@ -205,28 +212,30 @@ class NotificationService(object):
 
 
     def sendNotification(self, notification):
-        try:
-            self._archiveNotification(notification)
-        except Exception as e:
-            LOGGER.error(str(e))
-
-        return self.notificationHandler.sendNotification(notification)
-
-
-    def _archiveNotification(self, notification):
         if any(list(map(lambda k: k not in notification.keys(), ['title', 'content']))):
             raise MissingAttributeError('Required attributes: title and content')
 
         try:
+            result = self.notificationHandler.sendNotification(notification)
+        except Exception as e:
+            LOGGER.error(str(e))
+            self._archiveNotification(notification, failed=True)
+            raise InternalError('Failed to send notification')
+        else:
+            self._archiveNotification(notification)
+            return result
+
+
+    def _archiveNotification(self, notification, failed=False):
+        try:
             cur = self.db.cursor()
             cur.execute('''
-                INSERT INTO notification_archive (time, topic, title, content)
-                    VALUES (?, ?, ?, ?)
-                ''', (int(time()), self.topic, notification['title'], notification['content'], ))
+                INSERT INTO notification_archive (time, topic, title, content, send_failed)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (int(time()), self.topic, notification['title'], notification['content'], failed, ))
             self.db.commit()
         except sqlite3.Error as e:
             LOGGER.error(str(e))
-            raise InternalError(str(e))
         else:
             return True
         finally:

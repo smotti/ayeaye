@@ -246,13 +246,14 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         rv = self.app.get('/handlers/email')
         data = json.loads(rv.get_data().decode('utf-8'))
 
+        self.database.row_factory = sqlite3.Row
         cur = self.database.cursor()
         cur.execute('SELECT * FROM handler')
         handlers = cur.fetchall()
         cur.close()
 
         self.assertEqual(len(data), len(handlers))
-        self.assertEqual(data[0][1], handlers[0][1])
+        self.assertEqual(data[0]['topic'], handlers[0]['topic'])
 
 
     def testAddEmailHandler(self):
@@ -268,7 +269,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         fromDatabase = cur.fetchone()
 
         self.assertIsNotNone(fromDatabase)
-        self.assertEqual(responseData['topic'], fromDatabase[1])
+        self.assertEqual(responseData['topic'], fromDatabase[2])
         self.assertEqual(rv.status_code, 200)
 
 

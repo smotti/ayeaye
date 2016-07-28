@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS handler (
 CREATE TABLE IF NOT EXISTS notification_archive (
   id INTEGER PRIMARY KEY,
   time INTEGER,
+  send_failed BOOLEAN,
   topic VARCHAR(32),
   title VARCHAR(1024),
   content TEXT

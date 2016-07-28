@@ -89,8 +89,8 @@ class NotificationServiceTestCase(unittest.TestCase):
         row = cur.fetchone()
 
         self.assertIsNotNone(row)
-        self.assertEqual('TS', row[2])
-        self.assertEqual('Test', row[3])
+        self.assertEqual('TS', row['topic'])
+        self.assertEqual('Test', row['title'])
         self.assertTrue(result)
 
 
