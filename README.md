@@ -135,7 +135,8 @@ GET http://127.0.0.1/handlers/email
 STATUS 200
 BODY [{"topic": "IRB",
        "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
-                    "starttls": 0, "ssl": 1}}]
+                    "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
+                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
 ```
 
 #### POST /handlers/email
@@ -161,14 +162,20 @@ http://<host>/handlers/email
 
 ```
 POST http://127.0.0.1/handlers/email
-BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465, "ssl": 1}, "topic": "IRB"} 
+BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
+                   "ssl": 1, "fromAddr": "docking@medicustek.com",
+                   "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
+      "topic": "IRB"} 
 ```
 
 ###### Result
 
 ```
 STATUS 200
-BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465, "ssl": 1}, "topic": "IRB"}
+BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
+                   "ssl": 1, "fromAddr": "docking@medicustek.com",
+                   "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
+      "topic": "IRB"} 
 ```
 
 
@@ -222,8 +229,8 @@ http://<host>/settings/email
 | starttls (bool) | If STARTTLS should be used to encrypt the connection (required) |
 | user (str) | The username to use for SMTP AUTH (optional, required if auth is true) |
 | password (str) | The password to use for SMTP AUTH (optional, required if auth is true) |
-| toAddr ([str]) | A list of email addresses to which to send the notification |
-| fromAddr (str) | From which email to send the notification |
+| toAddr ([str]) | A list of email addresses to which to send the notification (required) |
+| fromAddr (str) | From which email to send the notification (required) |
 
 ##### Example
 
