@@ -13,7 +13,7 @@ Vagrant.configure("2") do |config|
   
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false 
-    vb.memory = "512"
+    vb.memory = "256"
     vb.cpus = "1"
     vb.name = "notification-service-email"
   end
