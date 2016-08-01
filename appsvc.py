@@ -86,9 +86,9 @@ class NotificationHandlerService(object):
             return []
         else:
             handlers = [rowToDict(row) for row in handlers]
-            list(map(
-                lambda h: h.update(dict(settings=json.loads(h['settings']))),
-                handlers))
+            for h in handlers:
+                if 'settings' in h and h['settings'] is not None:
+                    h.update(dict(settings=json.loads(h['settings'])))
             return handlers
 
 
