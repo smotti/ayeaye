@@ -4,3 +4,4 @@ __pycache__
 *.db
 *.pyc
 test_notifications/vagrant
+test-reports/
