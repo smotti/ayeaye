@@ -228,7 +228,7 @@ http://<host>/handlers/email
 ###### Request
 
 ```
-POST http://127.0.0.1/handlers/email/IRB
+PUT http://127.0.0.1/handlers/email/IRB
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}
