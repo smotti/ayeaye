@@ -1,5 +1,5 @@
 #!/bin/bash
 
 for t in tests/test_*.py; do
-  python $t
+  python3 $t
 done
