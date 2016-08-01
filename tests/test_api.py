@@ -257,7 +257,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
 
 
     def testAddEmailHandler(self):
-        handler = dict(topic='IRB', settings=dict(smtp_server='127.0.0.1'))
+        handler = dict(topic='IRB', settings=dict(server='127.0.0.1'))
         rv = self.app.post(
                 '/handlers/email',
                 data=json.dumps(handler),
@@ -271,6 +271,41 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         self.assertIsNotNone(fromDatabase)
         self.assertEqual(responseData['topic'], fromDatabase[2])
         self.assertEqual(rv.status_code, 200)
+
+
+    def testModifyEmailHandler(self):
+        topic = 'TS'
+        handler = dict(
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['TS@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=0,
+                    starttls=1))
+        rv = self.app.put(
+                '/handlers/email/'+topic,
+                data=json.dumps(handler),
+                content_type='application/json')
+        
+        self.assertEqual(200, rv.status_code)
+
+        cur = self.database.cursor()
+        cur.row_factory = sqlite3.Row
+        cur.execute('SELECT settings FROM handler WHERE topic = ?', (topic, ))
+        settings = json.loads(cur.fetchone()['settings'])
+
+        self.assertEqual(1, settings['starttls'])
+
+
+    def testGetSpecificEmailHandler(self):
+        topic = 'TS'
+        rv = self.app.get('/handlers/email/'+topic)
+        data = json.loads(rv.get_data().decode('utf-8'))
+
+        self.assertEqual(200, rv.status_code)
+        self.assertEqual(2525, data['settings']['port'])
 
 
 class ApiSendNotificationTestCase(unittest.TestCase):

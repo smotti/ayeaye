@@ -100,6 +100,8 @@ def settingsEmail():
         raise TeapotError('I\'m a teapot')
 
 
+# TODO: We need to be able to update an individual handler.
+# Or we also turn it into PUT only like /settings/email.
 @APP.route('/handlers/email', methods=['GET', 'POST'])
 @responseMiddleware
 def handlersEmail():
@@ -111,6 +113,19 @@ def handlersEmail():
         return nhs.addEmailHandler(request.get_json())
     else:
         raise TeapotError('I\'m a teapot')
+
+
+@APP.route('/handlers/email/<topic>', methods=['GET', 'PUT'])
+@responseMiddleware
+def emailHandlerByTopic(topic=''):
+    if request.method == 'GET':
+        nhs = NotificationHandlerService(DATABASE)
+        return nhs.aEmailHandler(topic)
+    elif request.method == 'PUT':
+        nhs = NotificationHandlerService(DATABASE)
+        handler = request.get_json()
+        handler.update({'topic': topic})
+        return nhs.addEmailHandler(handler)
 
 
 @APP.route('/notifications/', methods=['GET'])

@@ -96,7 +96,7 @@ class NotificationHandlerService(object):
         try:
             cur = self.db.cursor()
             cur.execute('''
-                INSERT INTO handler (topic, handler_type, settings)
+                INSERT OR REPLACE INTO handler (topic, handler_type, settings)
                 VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'),
                         ?)
                 ''',
@@ -109,6 +109,27 @@ class NotificationHandlerService(object):
             cur.close()
 
         return handler
+
+
+    def aEmailHandler(self, topic):
+        try:
+            cur = self.db.cursor()
+            cur.execute(
+                    'SELECT topic, settings FROM handler WHERE topic = ?',
+                    (topic, ))
+            handler = cur.fetchone()
+        except sqlite3.Error as e:
+            LOGGER.error(e)
+            raise InternalError('Failed to get email handler')
+        finally:
+            cur.close()
+
+        if handler is None:
+            return {}
+        else:
+            handler = rowToDict(handler)
+            handler.update(dict(settings=json.loads(handler['settings'])))
+            return handler
 
 
 class NotificationService(object):

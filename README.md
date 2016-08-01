@@ -139,6 +139,34 @@ BODY [{"topic": "IRB",
                     "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
 ```
 
+#### GET /handlers/email/:topic
+
+Get a specific email notification handlers.
+
+##### URL
+
+```
+http://<host>/handlers/email
+```
+
+##### Example
+
+###### Request
+
+```
+GET http://127.0.0.1/handlers/email/IRB
+```
+
+###### Result
+
+```
+STATUS 200
+BODY [{"topic": "IRB",
+       "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
+                    "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
+                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
+```
+
 #### POST /handlers/email
 
 Create a new email notification handler for the specified topic (tag).
@@ -166,6 +194,44 @@ BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
       "topic": "IRB"} 
+```
+
+###### Result
+
+```
+STATUS 200
+BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
+                   "ssl": 1, "fromAddr": "docking@medicustek.com",
+                   "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
+      "topic": "IRB"} 
+```
+
+#### PUT /handlers/email/:topic
+
+Create a new email notification handler for the specified topic or update
+an existing one.
+
+##### URL
+
+```
+http://<host>/handlers/email
+```
+
+##### Request Parameters
+
+| Parameter (Value-Type) | Description |
+| ---------------------- | ----------- |
+| settings (json map) | A JSON map of settings (i.e. server, port, auth, ...) to use instead of global email handler settings (see below) |
+
+##### Example
+
+###### Request
+
+```
+POST http://127.0.0.1/handlers/email/IRB
+BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
+                   "ssl": 1, "fromAddr": "docking@medicustek.com",
+                   "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}
 ```
 
 ###### Result
