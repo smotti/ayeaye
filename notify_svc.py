@@ -37,7 +37,11 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', type=int, default=5000,
             help='The port of the HTTP REST API')
     parser.add_argument('-d', '--database', type=str, default='./notify-svc.db',
-            help='Path to the sqlite3 database', metavar='PATH')
+            help='Path to the sqlite3 database', metavar='DBPATH')
+    parser.add_argument('-D', '--uploadDir', type=str, default='./',
+            help='Path for the temporary log folder', metavar='LOGPATH')
+    parser.add_argument('-m', '--maxLen', type=int, default=20,
+            help='The maximum request content length in MB', metavar='SIZE(MB)')
     parser.add_argument('-v', '--verbose', help='Verbose output',
             action='store_true')
     args = parser.parse_args()

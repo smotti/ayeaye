@@ -1,9 +1,11 @@
 from appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
-from error import Error, InternalError, TeapotError, NotFoundError
+from error import Error, InternalError, TeapotError, NotFoundError, BadRequestError
 from flask import Flask, request, Response, g
+from werkzeug.utils import secure_filename
 from functools import wraps
 import json
+import os
 from logging import getLogger
 import sqlite3
 
@@ -14,6 +16,9 @@ APP = Flask("ayeaye")
 
 def runApi(args):
     APP.config['DATABASE'] = args.database
+    APP.config['UPLOAD_DIR'] = args.uploadDir
+    APP.config['MAX_CONTENT_LENGTH'] = args.maxLen * 1024 * 1024
+    APP.config['MAX_FILE_NUM'] = 100 # Just random limitation
     APP.run(host=args.listen, port=args.port)
 
 
@@ -148,7 +153,7 @@ def notifications():
 def notificationByTopic(topic=''):
     if request.method == 'POST':
         ns = NotificationService(topic, DATABASE)
-        return ns.sendNotification(request.get_json()) 
+        return ns.sendNotification(request.get_json())
     elif request.method == 'GET':
         ns = NotificationService(topic, DATABASE)
         args = request.args.to_dict()
@@ -162,3 +167,58 @@ def notificationByTopic(topic=''):
             return ns.aNotificationHistory()
     else:
         raise TeapotError('I\'m a teapot')
+
+
+@APP.route('/notifications/log/<topic>', methods=['POST'])
+@responseMiddleware
+def logNotificationByTopic(topic=''):
+    if request.headers["Content-Type"].startswith("multipart/form-data"):
+        if 'file' in request.files:
+            #
+            # We add a key called "files",
+            # it's a path list of files that will be sent
+            # by the sendNotification method to those addresses
+            #
+            form = request.form
+            if 'title' not in form or 'content' not in form:
+                raise BadRequestError('Title or content missing')
+            req_dict = {
+                    "files": list(),
+                    "title": request.form['title'],
+                    "content": request.form['content']
+            }
+            file_list = dict(request.files)['file']
+            #
+            # For every file in file list, we save it and attach the file path
+            # behind the filepath list
+            #
+            if len(file_list) > APP.config['MAX_FILE_NUM']:
+                raise BadRequestError('File number exceed the limitation')
+            for file in file_list:
+                if file.filename == '':
+                    raise BadRequestError('Filename is left blank')
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(APP.config["UPLOAD_DIR"], filename)
+                try:
+                    file.save(filepath)
+                except Exception as e:
+                    raise InternalError(str(e))
+                req_dict["files"].append(filepath)
+
+            ns = NotificationService(topic, DATABASE)
+            result = ns.sendNotification(req_dict)
+            #
+            # If success, remove the saved log file, else keep it
+            #
+            if result:
+                try:
+                    for file in req_dict["files"]:
+                        os.remove(file)
+                except:
+                    raise InternalError(str(e))
+            return result
+
+        else:
+            raise BadRequestError('File is left empty')
+    else:
+        raise BadRequestError('The content-type is not multipart/form-data')

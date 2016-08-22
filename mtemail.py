@@ -1,7 +1,10 @@
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 from error import Error, AuthenticationError, InternalError, MissingAttributeError, \
         UnknownError
 from logging import getLogger
+from os.path import basename
 import smtplib
 import ssl
 
@@ -26,11 +29,21 @@ class EmailNotificationService(object):
 
 
     def sendNotification(self, notification):
-        msg = MIMEText(notification['content'])
+        msg = MIMEMultipart()
 
         msg['Subject'] = notification['title']
         msg['From'] = self.settings['fromAddr']
         msg['To'] = COMMASPACE.join(self.settings['toAddr'])
+        msg.attach(MIMEText(notification['content']))
+
+        if 'files' in notification and type(notification['files']) is list :
+            for file in notification['files']:
+                with open(file) as f:
+                    file_cont = f.read()
+                    file_basename = basename(file)
+                    part = MIMEApplication(file_cont, name=file_basename)
+                    part['Content-Diposition'] = 'attachment; filename="%s"' % file_basename
+                    msg.attach(part)
 
         try:
             s = None

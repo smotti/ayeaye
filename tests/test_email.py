@@ -39,6 +39,27 @@ class EmailNotificationServiceTestCase(unittest.TestCase):
         self.assertTrue(result)
         self.assertTrue(notificationReceived(notification['title']))
 
+    def testSendNotificationWithFileNoAuth(self):
+        settings = dict(
+                server='127.0.0.1', port=2525, toAddr=['test@medicustek.com'],
+                fromAddr='norbert@medicustek.com', auth=False, ssl=False, starttls=False)
+        ens = EmailNotificationService(settings)
+
+        notification = dict(content='Hello World', title='TEST', files=["/tmp/tmp1", "/tmp/tmp2"])
+        f = open("/tmp/tmp1", "w")
+        f.write("This is tmp file #1")
+        f.close()
+
+        f = open("/tmp/tmp2", "w")
+        f.write("This is Mambo #5")
+        f.close()
+
+        result = ens.sendNotification(notification)
+
+        sleep(1)
+        self.assertTrue(result)
+        self.assertTrue(notificationReceived(notification['title']))
+
 
     def testSendNotificationUsingAUTH(self):
         settings = dict(

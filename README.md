@@ -33,8 +33,12 @@ optional arguments:
   -l LISTEN, --listen LISTEN
                         IP address the HTTP REST API should listen on
   -p PORT, --port PORT  The port of the HTTP REST API
-  -d PATH, --database PATH
+  -d PATH, --database DBPATH
                         Path to the sqlite3 database
+  -D UPLOAD_DIR, --uploadDir LOGPATH
+                        Path to the temporary stored to-be-sent log files
+  -m MAX_LEN, --maxLen SIZE(MB)
+                        Maximum length for the content of a request
   -v, --verbose         Verbose output
 ```
 
@@ -417,6 +421,55 @@ http://<host>/notifications/
 ```
 POST http://127.0.0.1/notifications/IRB
 BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in"}
+```
+
+###### Result
+
+```
+STATUS 200
+```
+
+#### POST /notifications/log/:topic
+
+Send a log notification with the log attachment for the specified topic.
+
+Due to the need of uploading files, the **Content-Type** must set to:
+
+```
+multipart/form-data
+```
+
+##### URL
+
+```
+http://<host>/notifications/log/
+```
+
+##### Request multipart post data
+
+| Key | Description |
+| --- | ----------- |
+| title (str) | The title/subject of the notification |
+| content (str) | The content of the notification |
+| file(list) | List of log file to be sent |
+
+##### Example
+
+###### Request
+
+```
+POST http://127.0.0.1/notifications/log/IRB
+BODY
+
+Content-Disposition: form-data; name="title"
+    Log file 20161223
+Content-Disposition: form-data; name="content"
+    In the attachement is the log files
+Content-Disposition: form-data; name="file"; filename="dashboard.1.log"
+    This is the file content #1
+Content-Disposition: form-data; name="file"; filename="dashboard.2.log"
+    This is the file content #2
+
 ```
 
 ###### Result

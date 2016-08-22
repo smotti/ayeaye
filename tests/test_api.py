@@ -1,4 +1,4 @@
-from os import path, close, unlink, listdir, remove
+from os import path, close, unlink, remove
 import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -7,7 +7,7 @@ import notify_svc
 from api import APP
 import sqlite3
 from tempfile import mkstemp
-from time import sleep, time
+from time import sleep
 import unittest
 
 
@@ -288,7 +288,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
                 '/handlers/email/'+topic,
                 data=json.dumps(handler),
                 content_type='application/json')
-        
+
         self.assertEqual(200, rv.status_code)
 
         cur = self.database.cursor()
@@ -398,7 +398,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-        
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
@@ -411,10 +411,41 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-        
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))       
+        self.assertTrue(notificationReceived(notification['title']))
+
+
+    def testSendNotificationLog(self):
+        APP.config['MAX_FILE_NUM'] = 100
+        APP.config['UPLOAD_DIR'] = './'
+
+        f = open('/tmp/logfile1', 'wb')
+        f.write(b'log 1 content')
+        f.close()
+
+        f = open('/tmp/logfile2', 'wb')
+        f.write(b'log 2 content')
+        f.close()
+
+        topic = 'test'
+        files=[
+                (open('/tmp/logfile1', 'rb'), 'logfile1'),
+                (open('/tmp/logfile2', 'rb'), 'logfile2')
+                ]
+        notification = dict(title='LogSending', content='Test 1 2 3', file=files)
+        rv = self.app.post(
+                '/notifications/log/'+topic,
+                content_type='multipart/form-data',
+                data=notification
+                )
+        remove('/tmp/logfile1')
+        remove('/tmp/logfile2')
+        sleep(1)
+
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))
 
 
     def testSendNotificationUsingSMTPAUTH(self):
@@ -424,7 +455,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-        
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
@@ -436,7 +467,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-        
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
