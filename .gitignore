@@ -8,3 +8,4 @@ test-reports/
 pyvenv/
 dist/
 ayeaye.egg-info
+build/
