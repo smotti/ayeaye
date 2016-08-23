@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from api import runApi
+from ayeaye import initializeDatabase
+from ayeaye.api import runApi
 from argparse import ArgumentParser
 import logging
 from os import _exit
@@ -13,20 +14,7 @@ LOG_FMT = '%(levelname)s %(asctime)s %(name)s %(filename)s:%(lineno)d %(message)
 LOG_DATEFMT = '%Y-%m-%dT%H:%M:%SZ'
 
 
-def initializeDatabase(databasePath):
-    schemaPath = realpath(__file__).rsplit('/', 1)[0] + '/' + 'schema.sql'
-    with open(schemaPath, 'r', encoding='utf-8') as f:
-        schema = f.read()
 
-    try:
-        db = sqlite3.connect(databasePath)
-        db.executescript(schema)
-    except:
-        raise
-    finally:
-        db.close()
-
-    return True
 
 
 if __name__ == '__main__':

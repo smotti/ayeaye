@@ -1,7 +1,7 @@
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
-from error import Error, AuthenticationError, InternalError, MissingAttributeError, \
+from ayeaye.error import Error, AuthenticationError, InternalError, MissingAttributeError, \
         UnknownError
 from logging import getLogger
 from os.path import basename

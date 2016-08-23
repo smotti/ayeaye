@@ -1,6 +1,6 @@
-from appsvc import GlobalSettingsService, NotificationHandlerService, \
+from ayeaye.appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
-from error import Error, InternalError, TeapotError, NotFoundError, BadRequestError
+from ayeaye.error import Error, InternalError, TeapotError, NotFoundError, BadRequestError
 from flask import Flask, request, Response, g
 from werkzeug.utils import secure_filename
 from functools import wraps

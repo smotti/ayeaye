@@ -5,7 +5,7 @@ from os import path
 from os import remove
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-import ayeaye
+from ayeaye import initializeDatabase
 
 
 TEST_DB = '/tmp/ayeaye-test.db'
@@ -28,7 +28,7 @@ class TestStartup(unittest.TestCase):
 
 
     def testInitializeDatabase(self):
-        self.assertTrue(ayaye.initializeDatabase(TEST_DB))
+        self.assertTrue(initializeDatabase(TEST_DB))
         self.assertTrue(self._fileExists(TEST_DB))
 
 
