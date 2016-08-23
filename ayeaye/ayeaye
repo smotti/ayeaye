@@ -13,10 +13,6 @@ from sys import exit, stdout
 LOG_FMT = '%(levelname)s %(asctime)s %(name)s %(filename)s:%(lineno)d %(message)s'
 LOG_DATEFMT = '%Y-%m-%dT%H:%M:%SZ'
 
-
-
-
-
 if __name__ == '__main__':
     # Parse cli arguments
     parser = ArgumentParser()
