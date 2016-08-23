@@ -5,3 +5,7 @@ __pycache__
 *.pyc
 test_notifications/vagrant
 test-reports/
+pyvenv/
+dist/
+ayeaye.egg-info
+build/

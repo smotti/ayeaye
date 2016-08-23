@@ -1,7 +1,7 @@
-from error import InternalError, UnavailableError, NotFoundError
+from ayeaye.error import InternalError, UnavailableError, NotFoundError
 import json
 from logging import getLogger
-from mtemail import EmailNotificationService
+from ayeaye.mtemail import EmailNotificationService
 import sqlite3
 from time import time
 

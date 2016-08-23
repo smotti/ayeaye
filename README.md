@@ -13,20 +13,50 @@ email, sms, ...).
 * Python packages/modules
   * arrow
   * Flask
+  * setuptools
 
 ## Runtime
 
 * Python packages/modules
   * arrow
   * Flask
+  * setuptools (required for installation)
+  * pip (required for installation of dependencies)
 
 ---
+
+# Build
+
+To build a distributable package:
+
+```
+$ python setup.py sdist
+```
+
+This will create a directory named **dist/** which contains a tar archive.
+
+# Installation
+
+Unpack the tar archive (artificate of the build step):
+
+```
+$ tar xzf ayeaye-<version>.tar.gz
+```
+
+Install it via the following command (note you'll need root privileges):
+
+```
+# python setup.py install
+```
+
+The previous command will install ayeaye and its required dependencies. An
+executable script is copied to **/usr/local/bin/ayeaye**.
 
 # Usage
 
 ```
-$ ./notify_svc.py --help
-usage: notify_svc.py [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
+$ ayeaye --help
+usage: ayeaye [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
