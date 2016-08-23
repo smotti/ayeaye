@@ -55,8 +55,8 @@ executable script is copied to **/usr/local/bin/ayeaye**.
 # Usage
 
 ```
-$ ./ayeaye.py --help
-usage: ayeaye.py [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
+$ ayeaye --help
+usage: ayeaye [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
