@@ -3,7 +3,7 @@ import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 import json
-import notify_svc
+import ayeaye
 from api import APP
 import sqlite3
 from tempfile import mkstemp
@@ -31,7 +31,7 @@ class ApiTestCase(unittest.TestCase):
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
-            notify_svc.initializeDatabase(APP.config['DATABASE'])
+            ayeaye.initializeDatabase(APP.config['DATABASE'])
         self.database = sqlite3.connect(APP.config['DATABASE'])
 
 
@@ -134,7 +134,7 @@ class ApiWithTestData(unittest.TestCase):
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
-            notify_svc.initializeDatabase(APP.config['DATABASE'])
+            ayeaye.initializeDatabase(APP.config['DATABASE'])
         self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 
@@ -231,7 +231,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
-            notify_svc.initializeDatabase(APP.config['DATABASE'])
+            ayeaye.initializeDatabase(APP.config['DATABASE'])
         self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 
@@ -378,7 +378,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
-            notify_svc.initializeDatabase(APP.config['DATABASE'])
+            ayeaye.initializeDatabase(APP.config['DATABASE'])
         self.database = sqlite3.connect(APP.config['DATABASE'])
         self.insertTestData()
 

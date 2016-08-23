@@ -5,10 +5,10 @@ from os import path
 from os import remove
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
-import notify_svc
+import ayeaye
 
 
-TEST_DB = '/tmp/notify-svc-test.db'
+TEST_DB = '/tmp/ayeaye-test.db'
 
 
 class TestStartup(unittest.TestCase):
@@ -28,7 +28,7 @@ class TestStartup(unittest.TestCase):
 
 
     def testInitializeDatabase(self):
-        self.assertTrue(notify_svc.initializeDatabase(TEST_DB))
+        self.assertTrue(ayaye.initializeDatabase(TEST_DB))
         self.assertTrue(self._fileExists(TEST_DB))
 
 

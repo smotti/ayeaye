@@ -36,7 +36,7 @@ if __name__ == '__main__':
             help='IP address the HTTP REST API should listen on')
     parser.add_argument('-p', '--port', type=int, default=5000,
             help='The port of the HTTP REST API')
-    parser.add_argument('-d', '--database', type=str, default='./notify-svc.db',
+    parser.add_argument('-d', '--database', type=str, default='./ayeaye.db',
             help='Path to the sqlite3 database', metavar='DBPATH')
     parser.add_argument('-D', '--uploadDir', type=str, default='./',
             help='Path for the temporary log folder', metavar='LOGPATH')

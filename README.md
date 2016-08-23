@@ -25,8 +25,8 @@ email, sms, ...).
 # Usage
 
 ```
-$ ./notify_svc.py --help
-usage: notify_svc.py [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
+$ ./ayeaye.py --help
+usage: ayeaye.py [-h] [-l LISTEN] [-p PORT] [-d PATH] [-v]
 
 optional arguments:
   -h, --help            show this help message and exit
