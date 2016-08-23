@@ -36,8 +36,8 @@ class EmailNotificationService(object):
         msg['To'] = COMMASPACE.join(self.settings['toAddr'])
         msg.attach(MIMEText(notification['content']))
 
-        if 'files' in notification and type(notification['files']) is list :
-            for file in notification['files']:
+        if 'attachments' in notification and type(notification['attachments']) is list :
+            for file in notification['attachments']:
                 with open(file) as f:
                     file_cont = f.read()
                     file_basename = basename(file)

@@ -13,10 +13,23 @@ import sqlite3
 LOGGER = getLogger('api')
 APP = Flask("ayeaye")
 
+def gen_filepath(filename, topic):
+    topic_dir = os.path.join(APP.config['UPLOAD_DIR'], topic)
+    filepath = os.path.join(topic_dir, secure_filename(filename))
+    return filepath
 
 def runApi(args):
     APP.config['DATABASE'] = args.database
-    APP.config['UPLOAD_DIR'] = args.uploadDir
+    if not os.path.isdir(args.uploadDir):
+        LOGGER.fatal(args.uploadDir + "is not a valid folder for file upload\
+                (doesn't exist).")
+        raise FileNotFoundError('No such file ' + args.uploadDir)
+    elif not os.access(args.uploadDir, os.W_OK):
+        LOGGER.fatal(args.uploadDir + "is not a valid folder for file upload\
+                (permission denied).")
+        raise PermissionError('Permission denied ' + args.uploadDir)
+    else:
+        APP.config['UPLOAD_DIR'] = args.uploadDir
     APP.config['MAX_CONTENT_LENGTH'] = args.maxLen * 1024 * 1024
     APP.config['MAX_FILE_NUM'] = 100 # Just random limitation
     APP.run(host=args.listen, port=args.port)
@@ -153,7 +166,13 @@ def notifications():
 def notificationByTopic(topic=''):
     if request.method == 'POST':
         ns = NotificationService(topic, DATABASE)
-        return ns.sendNotification(request.get_json())
+        json_data = request.get_json()
+        if 'attachments' in json_data:
+            attachs = json_data.get('attachments', list())
+            if type(attachs) is not list:
+                raise BadRequestError('Attachments must be a list.')
+            attachs = list(map(lambda x: gen_filepath(x, topic), attachs))
+        return ns.sendNotification(json_data)
     elif request.method == 'GET':
         ns = NotificationService(topic, DATABASE)
         args = request.args.to_dict()
@@ -162,6 +181,7 @@ def notificationByTopic(topic=''):
             list(map(
                 lambda t: timeRange.update({t[0] : t[1]}),
                 [t for t in args.items() if t[0] in ['fromTime', 'toTime']]))
+                # from time to time teehee
             return ns.aNotificationHistoryByTopicAndTime(topic, **timeRange)
         else:
             return ns.aNotificationHistory()
@@ -169,55 +189,28 @@ def notificationByTopic(topic=''):
         raise TeapotError('I\'m a teapot')
 
 
-@APP.route('/notifications/log/<topic>', methods=['POST'])
+@APP.route('/notifications/<topic>/files', methods=['POST'])
 @responseMiddleware
 def logNotificationByTopic(topic=''):
     if request.headers["Content-Type"].startswith("multipart/form-data"):
         if 'file' in request.files:
-            #
-            # We add a key called "files",
-            # it's a path list of files that will be sent
-            # by the sendNotification method to those addresses
-            #
-            form = request.form
-            if 'title' not in form or 'content' not in form:
-                raise BadRequestError('Title or content missing')
-            req_dict = {
-                    "files": list(),
-                    "title": request.form['title'],
-                    "content": request.form['content']
-            }
             file_list = dict(request.files)['file']
-            #
-            # For every file in file list, we save it and attach the file path
-            # behind the filepath list
-            #
             if len(file_list) > APP.config['MAX_FILE_NUM']:
                 raise BadRequestError('File number exceed the limitation')
             for file in file_list:
                 if file.filename == '':
                     raise BadRequestError('Filename is left blank')
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(APP.config["UPLOAD_DIR"], filename)
+                topicdir = os.path.join(APP.config["UPLOAD_DIR"], topic)
+                filepath = gen_filepath(file.filename, topic)
                 try:
-                    file.save(filepath)
+                    if not os.path.isdir(topicdir):
+                        os.mkdir(topicdir)
+                    if not os.path.isfile(filepath):
+                        file.save(filepath)
+                    else:
+                        raise InternalError('File already exists')
                 except Exception as e:
                     raise InternalError(str(e))
-                req_dict["files"].append(filepath)
-
-            ns = NotificationService(topic, DATABASE)
-            result = ns.sendNotification(req_dict)
-            #
-            # If success, remove the saved log file, else keep it
-            #
-            if result:
-                try:
-                    for file in req_dict["files"]:
-                        os.remove(file)
-                except:
-                    raise InternalError(str(e))
-            return result
-
         else:
             raise BadRequestError('File is left empty')
     else:
