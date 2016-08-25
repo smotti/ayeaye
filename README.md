@@ -443,6 +443,7 @@ http://<host>/notifications/
 | ---------------------- | ----------- |
 | title (str) | The title/subject of the notification |
 | content (str) | The content of the notification |
+| attachments (list) | List of filenames which are previously uploaded under the same topic |
 
 ##### Example
 
@@ -450,7 +451,7 @@ http://<host>/notifications/
 
 ```
 POST http://127.0.0.1/notifications/IRB
-BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in"}
+BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in", "attachments": ["logfile1"]}
 ```
 
 ###### Result
@@ -459,9 +460,9 @@ BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in"}
 STATUS 200
 ```
 
-#### POST /notifications/log/:topic
+#### POST /notifications/:topic/files
 
-Send a log notification with the log attachment for the specified topic.
+Upload a file under certain topic
 
 Due to the need of uploading files, the **Content-Type** must set to:
 
@@ -472,15 +473,13 @@ multipart/form-data
 ##### URL
 
 ```
-http://<host>/notifications/log/
+http://<host>/notifications/
 ```
 
 ##### Request multipart post data
 
 | Key | Description |
 | --- | ----------- |
-| title (str) | The title/subject of the notification |
-| content (str) | The content of the notification |
 | file(list) | List of log file to be sent |
 
 ##### Example
@@ -490,11 +489,6 @@ http://<host>/notifications/log/
 ```
 POST http://127.0.0.1/notifications/log/IRB
 BODY
-
-Content-Disposition: form-data; name="title"
-    Log file 20161223
-Content-Disposition: form-data; name="content"
-    In the attachement is the log files
 Content-Disposition: form-data; name="file"; filename="dashboard.1.log"
     This is the file content #1
 Content-Disposition: form-data; name="file"; filename="dashboard.2.log"
