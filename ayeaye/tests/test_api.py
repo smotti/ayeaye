@@ -453,7 +453,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         if not os.path.isdir('/tmp/TS'):
             os.mkdir('/tmp/TS/')
         with NamedTemporaryFile(dir='/tmp/TS') as f:
-            notification = dict(title='HandlerSettings', content='Test 1 2 3', attachments=[f.name])
+            notification = dict(title='SendLog', content='Test 1 2 3', attachments=[os.path.basename(f.name)])
             rv = self.app.post(
                     '/notifications/'+topic,
                     data=json.dumps(notification),
@@ -463,6 +463,30 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))
 
+    def testTwoStepUploadLog(self):
+        APP.config['MAX_FILE_NUM'] = 100
+        APP.config['UPLOAD_DIR'] = '/tmp/'
+        f1 = NamedTemporaryFile()
+        f1.file.write(b'log 1 content')
+
+        topic = 'test'
+        files=[(open(f1.name, 'rb'), 'logfiletwostep')]
+        notification = dict(file=files)
+        rv = self.app.post(
+                '/notifications/' + topic + '/files',
+                content_type='multipart/form-data',
+                data=notification)
+
+        f1.close()
+        notification = dict(title='LogTwoStep', content='Test 1 2 3', attachments=['logfiletwostep'])
+        rv = self.app.post(
+                '/notifications/' + topic,
+                data=json.dumps(notification),
+                content_type='application/json')
+        remove('/tmp/test/logfiletwostep')
+        sleep(1)
+        self.assertEqual(200, rv.status_code)
+        self.assertTrue(notificationReceived(notification['title']))
 
     def testSendNotificationUsingSMTPAUTH(self):
         topic = 'IRB'

@@ -172,6 +172,7 @@ def notificationByTopic(topic=''):
             if type(attachs) is not list:
                 raise BadRequestError('Attachments must be a list.')
             attachs = list(map(lambda x: gen_filepath(x, topic), attachs))
+            json_data['attachments'] = attachs
         return ns.sendNotification(json_data)
     elif request.method == 'GET':
         ns = NotificationService(topic, DATABASE)
