@@ -6,7 +6,6 @@ from ayeaye.error import Error, AuthenticationError, InternalError, MissingAttri
 from logging import getLogger
 from os.path import basename
 import smtplib
-import ssl
 
 
 LOGGER = getLogger('mtemail')
