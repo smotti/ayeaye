@@ -1,11 +1,9 @@
 from ayeaye.appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
-from ayeaye.error import Error, InternalError, TeapotError, NotFoundError, BadRequestError
+from ayeaye.error import Error, InternalError, TeapotError, NotFoundError
 from flask import Flask, request, Response, g
-from werkzeug.utils import secure_filename
 from functools import wraps
 import json
-import os
 from logging import getLogger
 import sqlite3
 
@@ -13,25 +11,9 @@ import sqlite3
 LOGGER = getLogger('api')
 APP = Flask("ayeaye")
 
-def gen_filepath(filename, topic):
-    topic_dir = os.path.join(APP.config['UPLOAD_DIR'], topic)
-    filepath = os.path.join(topic_dir, secure_filename(filename))
-    return filepath
-
 def runApi(args):
     APP.config['DATABASE'] = args.database
-    if not os.path.isdir(args.uploadDir):
-        LOGGER.fatal(args.uploadDir + "is not a valid folder for file upload\
-                (doesn't exist).")
-        raise FileNotFoundError('No such file ' + args.uploadDir)
-    elif not os.access(args.uploadDir, os.W_OK):
-        LOGGER.fatal(args.uploadDir + "is not a valid folder for file upload\
-                (permission denied).")
-        raise PermissionError('Permission denied ' + args.uploadDir)
-    else:
-        APP.config['UPLOAD_DIR'] = args.uploadDir
     APP.config['MAX_CONTENT_LENGTH'] = args.maxLen * 1024 * 1024
-    APP.config['MAX_FILE_NUM'] = 100 # Just random limitation
     APP.run(host=args.listen, port=args.port)
 
 
@@ -167,12 +149,6 @@ def notificationByTopic(topic=''):
     if request.method == 'POST':
         ns = NotificationService(topic, DATABASE)
         json_data = request.get_json()
-        if 'attachments' in json_data:
-            attachs = json_data.get('attachments', list())
-            if type(attachs) is not list:
-                raise BadRequestError('Attachments must be a list.')
-            attachs = list(map(lambda x: gen_filepath(x, topic), attachs))
-            json_data['attachments'] = attachs
         return ns.sendNotification(json_data)
     elif request.method == 'GET':
         ns = NotificationService(topic, DATABASE)
@@ -188,31 +164,3 @@ def notificationByTopic(topic=''):
             return ns.aNotificationHistory()
     else:
         raise TeapotError('I\'m a teapot')
-
-
-@APP.route('/notifications/<topic>/files', methods=['POST'])
-@responseMiddleware
-def logNotificationByTopic(topic=''):
-    if request.headers["Content-Type"].startswith("multipart/form-data"):
-        if 'file' in request.files:
-            file_list = dict(request.files)['file']
-            if len(file_list) > APP.config['MAX_FILE_NUM']:
-                raise BadRequestError('File number exceed the limitation')
-            for file in file_list:
-                if file.filename == '':
-                    raise BadRequestError('Filename is left blank')
-                topicdir = os.path.join(APP.config["UPLOAD_DIR"], topic)
-                filepath = gen_filepath(file.filename, topic)
-                try:
-                    if not os.path.isdir(topicdir):
-                        os.mkdir(topicdir)
-                    if not os.path.isfile(filepath):
-                        file.save(filepath)
-                    else:
-                        raise InternalError('File already exists')
-                except Exception as e:
-                    raise InternalError(str(e))
-        else:
-            raise BadRequestError('File is left empty')
-    else:
-        raise BadRequestError('The content-type is not multipart/form-data')

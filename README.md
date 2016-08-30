@@ -65,10 +65,6 @@ optional arguments:
   -p PORT, --port PORT  The port of the HTTP REST API
   -d PATH, --database DBPATH
                         Path to the sqlite3 database
-  -D UPLOAD_DIR, --uploadDir LOGPATH
-                        Path to the temporary stored to-be-sent log files
-  -m MAX_LEN, --maxLen SIZE(MB)
-                        Maximum length for the content of a request
   -v, --verbose         Verbose output
 ```
 
@@ -443,7 +439,7 @@ http://<host>/notifications/
 | ---------------------- | ----------- |
 | title (str) | The title/subject of the notification |
 | content (str) | The content of the notification |
-| attachments (list) | List of filenames which are previously uploaded under the same topic |
+| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "log cont"}...]```|
 
 ##### Example
 
@@ -451,49 +447,7 @@ http://<host>/notifications/
 
 ```
 POST http://127.0.0.1/notifications/IRB
-BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in", "attachments": ["logfile1"]}
-```
-
-###### Result
-
-```
-STATUS 200
-```
-
-#### POST /notifications/:topic/files
-
-Upload a file under certain topic
-
-Due to the need of uploading files, the **Content-Type** must set to:
-
-```
-multipart/form-data
-```
-
-##### URL
-
-```
-http://<host>/notifications/
-```
-
-##### Request multipart post data
-
-| Key | Description |
-| --- | ----------- |
-| file(list) | List of log file to be sent |
-
-##### Example
-
-###### Request
-
-```
-POST http://127.0.0.1/notifications/log/IRB
-BODY
-Content-Disposition: form-data; name="file"; filename="dashboard.1.log"
-    This is the file content #1
-Content-Disposition: form-data; name="file"; filename="dashboard.2.log"
-    This is the file content #2
-
+BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in", "attachments": [{"filename": "f1.log", "content": "log cont"}]}
 ```
 
 ###### Result

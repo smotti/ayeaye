@@ -1,5 +1,4 @@
 from os import path, close, unlink, remove
-import os
 import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -7,7 +6,7 @@ import json
 import ayeaye
 from api import APP
 import sqlite3
-from tempfile import mkstemp, NamedTemporaryFile
+from tempfile import mkstemp
 from time import sleep
 import unittest
 
@@ -83,38 +82,6 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual('application/json', rv.mimetype)
         self.assertEqual(sorted(newSettings),
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
-
-    def testUploadLog(self):
-        APP.config['MAX_FILE_NUM'] = 100
-        APP.config['UPLOAD_DIR'] = '/tmp/'
-        f1 = NamedTemporaryFile()
-        f1.file.write(b'log 1 content')
-
-        f2 = NamedTemporaryFile()
-        f2.file.write(b'log 2 content')
-
-        topic = 'test'
-        files=[
-                (open(f1.name, 'rb'), 'logfile1'),
-                (open(f2.name, 'rb'), 'logfile2')
-                ]
-        notification = dict(file=files)
-        rv = self.app.post(
-                '/notifications/' + topic + '/files',
-                content_type='multipart/form-data',
-                data=notification)
-
-        f1.close()
-        f2.close()
-        sleep(1)
-
-        self.assertEqual(200, rv.status_code)
-        file1 = os.path.join(APP.config['UPLOAD_DIR'], topic, 'logfile1')
-        file2 = os.path.join(APP.config['UPLOAD_DIR'], topic, 'logfile2')
-        self.assertTrue(os.path.isfile(file1))
-        remove(file1)
-        self.assertTrue(file2)
-        remove(file2)
 
 class ApiWithTestData(unittest.TestCase):
 
@@ -448,42 +415,13 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         self.assertTrue(notificationReceived(notification['title']))
 
     def testSendNotificationWithLog(self):
-        APP.config['UPLOAD_DIR'] = '/tmp/'
         topic = 'TS'
-        if not os.path.isdir('/tmp/TS'):
-            os.mkdir('/tmp/TS/')
-        with NamedTemporaryFile(dir='/tmp/TS') as f:
-            notification = dict(title='SendLog', content='Test 1 2 3', attachments=[os.path.basename(f.name)])
-            rv = self.app.post(
-                    '/notifications/'+topic,
-                    data=json.dumps(notification),
-                    content_type='application/json')
-            f.close()
-        sleep(1)
-        self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
-
-    def testTwoStepUploadLog(self):
-        APP.config['MAX_FILE_NUM'] = 100
-        APP.config['UPLOAD_DIR'] = '/tmp/'
-        f1 = NamedTemporaryFile()
-        f1.file.write(b'log 1 content')
-
-        topic = 'test'
-        files=[(open(f1.name, 'rb'), 'logfiletwostep')]
-        notification = dict(file=files)
+        notification = dict(title='SendLog', content='Test 1 2 3',
+                attachments=[{"filename": "FN", "content": "File content"}])
         rv = self.app.post(
-                '/notifications/' + topic + '/files',
-                content_type='multipart/form-data',
-                data=notification)
-
-        f1.close()
-        notification = dict(title='LogTwoStep', content='Test 1 2 3', attachments=['logfiletwostep'])
-        rv = self.app.post(
-                '/notifications/' + topic,
+                '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
-        remove('/tmp/test/logfiletwostep')
         sleep(1)
         self.assertEqual(200, rv.status_code)
         self.assertTrue(notificationReceived(notification['title']))

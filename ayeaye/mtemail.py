@@ -2,9 +2,8 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from ayeaye.error import Error, AuthenticationError, InternalError, MissingAttributeError, \
-        UnknownError
+        UnknownError, BadRequestError
 from logging import getLogger
-from os.path import basename
 import smtplib
 
 
@@ -35,14 +34,18 @@ class EmailNotificationService(object):
         msg['To'] = COMMASPACE.join(self.settings['toAddr'])
         msg.attach(MIMEText(notification['content']))
 
-        if 'attachments' in notification and type(notification['attachments']) is list :
-            for file in notification['attachments']:
-                with open(file) as f:
-                    file_cont = f.read()
-                    file_basename = basename(file)
-                    part = MIMEApplication(file_cont, name=file_basename)
-                    part['Content-Diposition'] = 'attachment; filename="%s"' % file_basename
+        if 'attachments' in notification:
+            if type(notification['attachments']) is list :
+                for f in notification['attachments']:
+                    if not ("filename" in f and "content" in f):
+                        raise BadRequestError('One of the file is missing filename or content')
+                    file_cont = f["content"]
+                    file_name = f["filename"]
+                    part = MIMEApplication(file_cont, name=file_name)
+                    part['Content-Diposition'] = 'attachment; filename="%s"' % file_name
                     msg.attach(part)
+            else:
+                raise BadRequestError('Attachments must be a list')
 
         try:
             s = None
