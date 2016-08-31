@@ -8,6 +8,7 @@ from api import APP
 import sqlite3
 from tempfile import mkstemp
 from time import sleep
+import base64
 import unittest
 
 
@@ -417,7 +418,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
     def testSendNotificationWithLog(self):
         topic = 'TS'
         notification = dict(title='SendLog', content='Test 1 2 3',
-                attachments=[{"filename": "FN", "content": "File content"}])
+                attachments=[{"filename": "FN", "content": base64.b64encode(b"File content").decode('utf-8')}])
         rv = self.app.post(
                 '/notifications/'+topic,
                 data=json.dumps(notification),

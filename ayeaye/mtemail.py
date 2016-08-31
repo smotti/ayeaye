@@ -5,7 +5,7 @@ from ayeaye.error import Error, AuthenticationError, InternalError, MissingAttri
         UnknownError, BadRequestError
 from logging import getLogger
 import smtplib
-
+import base64
 
 LOGGER = getLogger('mtemail')
 COMMASPACE = ', '
@@ -34,20 +34,20 @@ class EmailNotificationService(object):
         msg['To'] = COMMASPACE.join(self.settings['toAddr'])
         msg.attach(MIMEText(notification['content']))
 
-        if 'attachments' in notification:
-            if type(notification['attachments']) is list :
-                for f in notification['attachments']:
-                    if not ("filename" in f and "content" in f):
-                        raise BadRequestError('One of the file is missing filename or content')
-                    file_cont = f["content"]
-                    file_name = f["filename"]
-                    part = MIMEApplication(file_cont, name=file_name)
-                    part['Content-Diposition'] = 'attachment; filename="%s"' % file_name
-                    msg.attach(part)
-            else:
-                raise BadRequestError('Attachments must be a list')
-
         try:
+            if 'attachments' in notification:
+                if type(notification['attachments']) is list :
+                    for f in notification['attachments']:
+                        if not ("filename" in f and "content" in f):
+                            raise BadRequestError('One of the file is missing filename or content')
+                        file_cont = base64.b64decode(f["content"].encode('utf-8'))
+                        file_name = f["filename"]
+                        part = MIMEApplication(file_cont, name=file_name)
+                        part['Content-Diposition'] = 'attachment; filename="%s"' % file_name
+                        msg.attach(part)
+                else:
+                    raise BadRequestError('Attachments must be a list')
+
             s = None
 
             if self.settings['ssl'] and not self.settings['starttls']:

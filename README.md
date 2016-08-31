@@ -439,7 +439,7 @@ http://<host>/notifications/
 | ---------------------- | ----------- |
 | title (str) | The title/subject of the notification |
 | content (str) | The content of the notification |
-| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "log cont"}...]```|
+| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "log cont"(base64 encrypted)}...]```|
 
 ##### Example
 
