@@ -382,11 +382,11 @@ GET http://127.0.0.1/notifications/
 ```
 STATUS 200
 BODY [{"content": "Patient with ID 1233 checked in", "topic": "IRB",
-       "title": "Patient Check-In", "time": 10},
+       "title": "Patient Check-In", "time": 10, "id": 2},
       {"content": "Patient with ID 1233 checked in", "topic": "IRB",
-       "title": "Patient Check-In", "time": 15},
+       "title": "Patient Check-In", "time": 15, "id": 3},
       {"content": "Patient with ID 1233 checked in", "topic": "IRB",
-       "title": "Patient Check-In", "time": 20}]
+       "title": "Patient Check-In", "time": 20, "id": 4}]
 ```
 
 #### GET /notifications/:topic

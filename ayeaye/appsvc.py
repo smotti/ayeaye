@@ -204,22 +204,22 @@ class NotificationService(object):
             cur = self.db.cursor()
 
             if toTime is not None and fromTime is None:
-                qry = '''SELECT time, topic, title, content, send_failed
+                qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
                     WHERE time <= ? LIMIT ? OFFSET ?'''
                 cur.execute(qry, (toTime, limit, offset))
             elif toTime is not None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content, send_failed
+                qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
                     WHERE time >= ? and time <= ? ORDER BY time LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, toTime, limit, offset))
             elif toTime is None and fromTime is not None:
-                qry = '''SELECT time, topic, title, content, send_failed
+                qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
                     WHERE time >= ? ORDER BY time LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, limit, offset))
             else:
-                qry = '''SELECT time, topic, title, content, send_failed
+                qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive ORDER BY time LIMIT ? OFFSET ?'''
                 cur.execute(qry, (limit, offset))
 
