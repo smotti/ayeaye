@@ -137,7 +137,7 @@ def notifications():
         timeRange = {}
         list(map(
             lambda t: timeRange.update({t[0] : t[1]}),
-            [t for t in args.items() if t[0] in ['fromTime', 'toTime']]))
+            [t for t in args.items() if t[0] in ['fromTime', 'toTime', 'offset',  'limit']]))
         return ns.aNotificationHistoryByTime(**timeRange)
     else:
         raise TeapotError('I\'m a teapot')

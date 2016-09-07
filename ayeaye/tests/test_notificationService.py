@@ -98,8 +98,17 @@ class NotificationServiceTestCase(unittest.TestCase):
         fromTime = 20
         toTime = 35
         ns = NotificationService(self.topic, self.database)
-        result = ns.aNotificationHistoryByTime(fromTime, toTime)
+        result = ns.aNotificationHistoryByTime(fromTime=fromTime, toTime=toTime)
         self.assertEqual(4, len(result))
+
+        offset = 2
+        result = ns.aNotificationHistoryByTime(fromTime=fromTime, toTime=toTime, offset=offset)
+        self.assertEqual(2, len(result))
+
+        offset = 2
+        limit = 1
+        result = ns.aNotificationHistoryByTime(fromTime=fromTime, toTime=toTime, offset=offset, limit=limit)
+        self.assertEqual(1, len(result))
 
         fromTime = 35
         result = ns.aNotificationHistoryByTime(fromTime)

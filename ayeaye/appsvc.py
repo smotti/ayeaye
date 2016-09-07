@@ -169,7 +169,7 @@ class NotificationService(object):
             cur = self.db.cursor()
 
             if toTime is not None and fromTime is None:
-                qry = '''SELECT time, topic, title, content, send_failed 
+                qry = '''SELECT time, topic, title, content, send_failed
                     FROM notification_archive
                     WHERE topic = ? and time <= ?'''
                 cur.execute(qry, (topic, toTime, ))
@@ -185,7 +185,7 @@ class NotificationService(object):
                 cur.execute(qry, (topic, fromTime, ))
             else:
                 raise MissingAttributeError('Missing fromTime/toTime')
-            
+
             notifications = cur.fetchall()
         except sqlite3.Error as e:
             LOGGER.error(str(e))
@@ -199,30 +199,30 @@ class NotificationService(object):
             return [rowToDict(row) for row in notifications]
 
 
-    def aNotificationHistoryByTime(self, fromTime=None, toTime=None):
+    def aNotificationHistoryByTime(self, fromTime=None, toTime=None, offset=0, limit=-1):
         try:
             cur = self.db.cursor()
 
             if toTime is not None and fromTime is None:
                 qry = '''SELECT time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time <= ?'''
-                cur.execute(qry, (toTime, ))
+                    WHERE time <= ? LIMIT ? OFFSET ?'''
+                cur.execute(qry, (toTime, limit, offset))
             elif toTime is not None and fromTime is not None:
                 qry = '''SELECT time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ? and time <= ?'''
-                cur.execute(qry, (fromTime, toTime, ))
+                    WHERE time >= ? and time <= ? ORDER BY time LIMIT ? OFFSET ?'''
+                cur.execute(qry, (fromTime, toTime, limit, offset))
             elif toTime is None and fromTime is not None:
                 qry = '''SELECT time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ?'''
-                cur.execute(qry, (fromTime, ))
+                    WHERE time >= ? ORDER BY time LIMIT ? OFFSET ?'''
+                cur.execute(qry, (fromTime, limit, offset))
             else:
-                 qry = '''SELECT time, topic, title, content, send_failed
-                    FROM notification_archive'''
-                 cur.execute(qry)
-            
+                qry = '''SELECT time, topic, title, content, send_failed
+                    FROM notification_archive ORDER BY time LIMIT ? OFFSET ?'''
+                cur.execute(qry, (limit, offset))
+
             notifications = cur.fetchall()
         except sqlite3.Error as e:
             LOGGER.error(str(e))
@@ -269,7 +269,7 @@ class NotificationService(object):
 
     def __getNotificationHandler(self, topic):
         try:
-            cur = self.db.cursor() 
+            cur = self.db.cursor()
             cur.execute('''
                 SELECT name, settings, handler_type FROM handler JOIN handler_type ON
                     handler.handler_type = handler_type.id
@@ -304,6 +304,6 @@ class NotificationService(object):
             settings = json.loads(handler[1])
 
         if handler[0] == 'email':
-            return EmailNotificationService(settings)            
+            return EmailNotificationService(settings)
         else:
             raise UnavailableError('No notification handler found for topic')

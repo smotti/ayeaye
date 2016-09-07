@@ -366,6 +366,8 @@ The following request parameters may be provided as url query strings.
 | --------- | ----------- |
 | fromTime  | From what time in point onwards notification should be retrieved |
 | toTime | The point in time up to which to receive notifications |
+| offset | Offset for the query result ( Skip how many records ) |
+| limit | The limit number of query results |
 
 ##### Example
 
