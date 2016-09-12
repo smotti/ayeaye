@@ -15,6 +15,7 @@ email, sms, ...).
   * Flask
   * setuptools
   * flask-cors
+  * xmlrunner
 
 ## Runtime
 
