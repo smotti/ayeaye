@@ -2,6 +2,7 @@ from ayeaye.appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
 from ayeaye.error import Error, InternalError, TeapotError, NotFoundError
 from flask import Flask, request, Response, g
+from flask_cors import CORS
 from functools import wraps
 import json
 from logging import getLogger
@@ -10,6 +11,7 @@ import sqlite3
 
 LOGGER = getLogger('api')
 APP = Flask("ayeaye")
+CORS(APP)
 
 def runApi(args):
     APP.config['DATABASE'] = args.database

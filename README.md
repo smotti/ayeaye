@@ -14,6 +14,7 @@ email, sms, ...).
   * arrow
   * Flask
   * setuptools
+  * flask-cors
 
 ## Runtime
 
@@ -22,6 +23,7 @@ email, sms, ...).
   * Flask
   * setuptools (required for installation)
   * pip (required for installation of dependencies)
+  * flask-cors
 
 ---
 
