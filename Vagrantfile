@@ -2,10 +2,9 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "debian/jessie64"
+  config.vm.box = "debian/contrib-jessie64"
 
   config.vm.hostname = "mail.medicustek.test"
-  config.vm.network "private_network", ip: "172.16.0.5"
   config.vm.network "forwarded_port", guest: 25, host: 2525, host_ip: "127.0.0.1"
   config.vm.network "forwarded_port", guest: 465, host: 4650, host_ip: "127.0.0.1"
 
