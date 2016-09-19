@@ -100,7 +100,7 @@ class NotificationHandlerService(object):
                 VALUES (?, (SELECT id FROM handler_type WHERE name = 'email'),
                         ?)
                 ''',
-                (handler['topic'], json.dumps(handler['settings']), ))
+                (handler['topic'].lower(), json.dumps(handler['settings']), ))
             self.db.commit()
         except sqlite3.Error as e:
             LOGGER.error(e)
