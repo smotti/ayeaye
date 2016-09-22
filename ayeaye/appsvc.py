@@ -1,4 +1,4 @@
-from ayeaye.error import InternalError, UnavailableError, NotFoundError
+from ayeaye.error import InternalError, UnavailableError, NotFoundError, MissingAttributeError
 import json
 from logging import getLogger
 from ayeaye.mtemail import EmailNotificationService
@@ -211,16 +211,16 @@ class NotificationService(object):
             elif toTime is not None and fromTime is not None:
                 qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ? and time <= ? ORDER BY time LIMIT ? OFFSET ?'''
+                    WHERE time >= ? and time <= ? ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, toTime, limit, offset))
             elif toTime is None and fromTime is not None:
                 qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ? ORDER BY time LIMIT ? OFFSET ?'''
+                    WHERE time >= ? ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, limit, offset))
             else:
                 qry = '''SELECT id, time, topic, title, content, send_failed
-                    FROM notification_archive ORDER BY time LIMIT ? OFFSET ?'''
+                    FROM notification_archive ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (limit, offset))
 
             notifications = cur.fetchall()
