@@ -265,11 +265,11 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         responseData = json.loads(rv.get_data().decode('utf-8'))
 
         cur = self.database.cursor()
-        cur.execute('SELECT * FROM handler WHERE topic = \'IRB\'')
+        cur.execute('SELECT * FROM handler WHERE topic = \'{}\''.format(handler['topic'].lower()))
         fromDatabase = cur.fetchone()
 
         self.assertIsNotNone(fromDatabase)
-        self.assertEqual(responseData['topic'], fromDatabase[2])
+        self.assertEqual(responseData['topic'].lower(), fromDatabase[2])
         self.assertEqual(rv.status_code, 200)
 
 
@@ -293,7 +293,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
 
         cur = self.database.cursor()
         cur.row_factory = sqlite3.Row
-        cur.execute('SELECT settings FROM handler WHERE topic = ?', (topic, ))
+        cur.execute('SELECT settings FROM handler WHERE topic = ?', (topic.lower(), ))
         settings = json.loads(cur.fetchone()['settings'])
 
         self.assertEqual(1, settings['starttls'])
