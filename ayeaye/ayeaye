@@ -22,8 +22,8 @@ if __name__ == '__main__':
             help='The port of the HTTP REST API')
     parser.add_argument('-d', '--database', type=str, default='./ayeaye.db',
             help='Path to the sqlite3 database', metavar='DBPATH')
-    parser.add_argument('-D', '--uploadDir', type=str, default='./',
-            help='Path for the temporary log folder', metavar='LOGPATH')
+    parser.add_argument('-D', '--attachmentsDir', type=str, default='./attachments',
+            help='Path for archiving notification attachments', metavar='ATTACHMENT_PATH')
     parser.add_argument('-m', '--maxLen', type=int, default=20,
             help='The maximum request content length in MB', metavar='SIZE(MB)')
     parser.add_argument('-v', '--verbose', help='Verbose output',

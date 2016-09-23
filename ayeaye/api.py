@@ -16,6 +16,7 @@ CORS(APP)
 def runApi(args):
     APP.config['DATABASE'] = args.database
     APP.config['MAX_CONTENT_LENGTH'] = args.maxLen * 1024 * 1024
+    APP.config['ATTACHMENTS_DIR'] = args.attachmentsDir
     APP.run(host=args.listen, port=args.port)
 
 
@@ -149,7 +150,7 @@ def notifications():
 @responseMiddleware
 def notificationByTopic(topic=''):
     if request.method == 'POST':
-        ns = NotificationService(topic, DATABASE)
+        ns = NotificationService(topic, DATABASE, attachmentsDir=APP.config['ATTACHMENTS_DIR'])
         json_data = request.get_json()
         return ns.sendNotification(json_data)
     elif request.method == 'GET':

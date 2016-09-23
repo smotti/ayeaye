@@ -6,9 +6,11 @@ import json
 import ayeaye
 from api import APP
 import sqlite3
-from tempfile import mkstemp
+from tempfile import mkstemp, mkdtemp
+from shutil import rmtree
 from time import sleep
-import base64
+from base64 import b64encode, b64decode
+import email
 import unittest
 
 
@@ -17,12 +19,27 @@ MAIL_USER = 'vagrant'
 MAIL_PASSWORD = 'vagrant'
 
 
-def notificationReceived(title):
+def notificationReceived(notification):
     with open(TEST_NOTIFICATION_FILE, 'r') as f:
-        for l in f:
-            if l.startswith('Subject: ' + title):
-                return True
-    return False
+        msg = email.message_from_file(f)
+        title = msg['Subject']
+        content = ''
+        fileContents = list()
+
+        for idx, payload in enumerate(msg.get_payload()):
+            if idx == 0:
+                content = payload.get_payload()
+            else:
+                fileContents.append(payload.get_payload())
+
+        compareResult = list()
+        compareResult.append(title == notification['title'])
+        compareResult.append(content == notification['content'])
+        if 'attachments' in notification:
+            for f1, f2 in zip(notification['attachments'], fileContents):
+                compareResult.append(b64decode(f1['content']) == b64decode(f2))
+
+        return all(compareResult)
 
 
 class ApiTestCase(unittest.TestCase):
@@ -83,6 +100,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual('application/json', rv.mimetype)
         self.assertEqual(sorted(newSettings),
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
+
 
 class ApiWithTestData(unittest.TestCase):
 
@@ -375,6 +393,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
     def setUp(self):
         self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['ATTACHMENTS_DIR'] = mkdtemp()
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
@@ -388,6 +407,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
         remove(TEST_NOTIFICATION_FILE)
+        rmtree(APP.config['ATTACHMENTS_DIR'])
 
 
     def testSendNotificationWithGlobalSettings(self):
@@ -400,7 +420,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
 
     def testSendNotificationWithHandlerSettings(self):
@@ -413,19 +433,26 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
-    def testSendNotificationWithLog(self):
+    def testSendNotificationWithAttachments(self):
         topic = 'TS'
-        notification = dict(title='SendLog', content='Test 1 2 3',
-                attachments=[{"filename": "FN", "content": base64.b64encode(b"File content").decode('utf-8')}])
+        notification = dict(title='SendLog',
+                content='Test 1 2 3',
+                attachments=[{"filename": "TestFile1",
+                              "content": b64encode(b"This is the content of the file1.").decode('utf-8'),
+                              "backup": True},
+                             {"filename": "TestFile2",
+                              "content": b64encode(b"This is the content of the file2.").decode('utf-8'),
+                              "backup": False}])
         rv = self.app.post(
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
     def testSendNotificationUsingSMTPAUTH(self):
         topic = 'IRB'
@@ -437,7 +464,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
     def testSendNotificationUsingSMTPS(self):
         topic = 'CRA'
@@ -449,7 +476,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
 
 if __name__ == '__main__':

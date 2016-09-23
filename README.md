@@ -68,6 +68,8 @@ optional arguments:
   -p PORT, --port PORT  The port of the HTTP REST API
   -d PATH, --database DBPATH
                         Path to the sqlite3 database
+  -D PATH, --attachmentsDir ATTACHMENT_PATH
+                        Path for archiving notification attachments
   -v, --verbose         Verbose output
 ```
 
@@ -444,7 +446,7 @@ http://<host>/notifications/
 | ---------------------- | ----------- |
 | title (str) | The title/subject of the notification |
 | content (str) | The content of the notification |
-| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "log cont"(base64 encoded)}...]```|
+| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "SSd="(base64 encoded), "backup": True}, ...]```|
 
 ##### Example
 
@@ -452,7 +454,14 @@ http://<host>/notifications/
 
 ```
 POST http://127.0.0.1/notifications/IRB
-BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in", "attachments": [{"filename": "f1.log", "content": "log cont"}]}
+BODY {"title": "Patient Check-In",
+      "content": "Patient with ID 1233 checked in",
+      "attachments": [{"filename": "f1.log",
+                       "content": "SSdtIGEgdGVhcG90IQ==",
+                       "backup": False},
+                      {"filename": "file1.csv",
+                       "content": "SSdtIGEgY29mZmVlcG90IQ==",
+                       "backup": True}]}
 ```
 
 ###### Result

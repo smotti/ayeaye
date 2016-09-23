@@ -3,6 +3,8 @@ import json
 from logging import getLogger
 from ayeaye.mtemail import EmailNotificationService
 import sqlite3
+from base64 import b64decode
+import os
 from time import time
 
 
@@ -134,8 +136,9 @@ class NotificationHandlerService(object):
 
 class NotificationService(object):
 
-    def __init__(self, topic='', database=None):
+    def __init__(self, topic='', database=None, attachmentsDir=None):
         self.db = database
+        self.attachmentsDir = attachmentsDir
         self.topic = topic
         # TODO: Would make sense to have a fallback/default notification handler
         if len(topic) > 0:
@@ -248,7 +251,12 @@ class NotificationService(object):
             raise InternalError('Failed to send notification')
         else:
             self._archiveNotification(notification)
-            return result
+        
+        if 'attachments' in notification:
+            try:
+                self._archiveAttachments(notification)
+            except Exception as e:
+                raise InternalError('Failed to archive attachments: {}'.format(str(e)))
 
 
     def _archiveNotification(self, notification, failed=False):
@@ -265,6 +273,29 @@ class NotificationService(object):
             return True
         finally:
             cur.close()
+
+
+    def _archiveAttachments(self, notification):
+        dir = os.path.join(self.attachmentsDir, self.topic)
+        try:
+            os.makedirs(os.path.join(self.attachmentsDir, self.topic), exist_ok=True)
+        except Exception as e:
+            msg = 'Unable to create directory for storing attachments: {}'.format(str(e))
+            LOGGER.error(msg)
+            raise InternalError(msg)
+
+        for attachment in notification['attachments']:
+            if attachment.get('backup') is True:
+                try:
+                    fileName = self._incrementNameIfExist(dir, attachment['filename'])
+                    fileData = b64decode(attachment['content'])
+                    with open(os.path.join(dir, fileName), 'wb') as f:
+                        f.write(fileData)
+                except Exception as e:
+                    msg = 'Unable to store attachment {}: {}'.format(
+                            attachment['filename'], str(e))
+                    LOGGER.error(msg)
+                    raise InternalError(msg)
 
 
     def __getNotificationHandler(self, topic):
@@ -307,3 +338,24 @@ class NotificationService(object):
             return EmailNotificationService(settings)
         else:
             raise UnavailableError('No notification handler found for topic')
+
+
+    # Append a number if the file name exists
+    # Ex: if 'filename.csv'  exists in path, it will become 'filename_1.csv'
+    @staticmethod
+    def _incrementNameIfExist(path, fileName):
+        if not fileName in os.listdir(path):
+            return fileName
+        try:
+            (name, extension) = fileName.rsplit('.', 1)
+            extension = '.' + extension
+        except ValueError: # No file extension
+            name = fileName
+            extension = ''
+
+        duplicatedNumber = 0;
+        while True:
+            duplicatedNumber += 1;
+            fileName = name + '_{}'.format(duplicatedNumber) + extension
+            if not fileName in os.listdir(path):
+                return fileName
