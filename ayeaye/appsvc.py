@@ -1,4 +1,4 @@
-from ayeaye.error import InternalError, UnavailableError, NotFoundError, MissingAttributeError
+from ayeaye.error import InternalError, UnavailableError, NotFoundError, MissingAttributeError, BadRequestError
 import json
 from logging import getLogger
 from ayeaye.mtemail import EmailNotificationService
@@ -95,6 +95,10 @@ class NotificationHandlerService(object):
 
 
     def addEmailHandler(self, handler):
+        # Check arguments
+        if set(handler.keys()).issuperset({'topic', 'settings'}) is False:
+            raise MissingAttributeError('Required attributes: topic and settings')
+
         try:
             cur = self.db.cursor()
             cur.execute('''

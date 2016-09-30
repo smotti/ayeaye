@@ -1,6 +1,6 @@
 from ayeaye.appsvc import GlobalSettingsService, NotificationHandlerService, \
     NotificationService
-from ayeaye.error import Error, InternalError, TeapotError, NotFoundError
+from ayeaye.error import Error, InternalError, TeapotError, NotFoundError, BadRequestError
 from flask import Flask, request, Response, g
 from flask_cors import CORS
 from functools import wraps
@@ -112,8 +112,12 @@ def handlersEmail():
         nhs = NotificationHandlerService(DATABASE)
         return nhs.getEmailHandlers()
     elif request.method == 'POST':
+        json_data = request.get_json()
+        if json_data is None:
+            raise BadRequestError('Data must be provided in JSON format.')
+
         nhs = NotificationHandlerService(DATABASE)
-        return nhs.addEmailHandler(request.get_json())
+        return nhs.addEmailHandler(json_data)
     else:
         raise TeapotError('I\'m a teapot')
 
@@ -125,8 +129,11 @@ def emailHandlerByTopic(topic=''):
         nhs = NotificationHandlerService(DATABASE)
         return nhs.aEmailHandler(topic)
     elif request.method == 'PUT':
-        nhs = NotificationHandlerService(DATABASE)
         handler = request.get_json()
+        if handler is None:
+            raise BadRequestError('Data must be provided in JSON format.')
+
+        nhs = NotificationHandlerService(DATABASE)
         handler.update({'topic': topic})
         return nhs.addEmailHandler(handler)
 
@@ -150,8 +157,11 @@ def notifications():
 @responseMiddleware
 def notificationByTopic(topic=''):
     if request.method == 'POST':
-        ns = NotificationService(topic, DATABASE, attachmentsDir=APP.config['ATTACHMENTS_DIR'])
         json_data = request.get_json()
+        if json_data is None:
+            raise BadRequestError('Data must be provided in JSON format.')
+
+        ns = NotificationService(topic, DATABASE, attachmentsDir=APP.config['ATTACHMENTS_DIR'])
         return ns.sendNotification(json_data)
     elif request.method == 'GET':
         ns = NotificationService(topic, DATABASE)
