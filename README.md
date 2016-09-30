@@ -168,7 +168,7 @@ GET http://127.0.0.1/handlers/email
 
 ```
 STATUS 200
-BODY [{"topic": "IRB",
+BODY [{"topic": "irb",
        "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
                     "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
                     "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
@@ -196,7 +196,7 @@ GET http://127.0.0.1/handlers/email/IRB
 
 ```
 STATUS 200
-BODY [{"topic": "IRB",
+BODY [{"topic": "irb",
        "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
                     "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
                     "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
@@ -216,7 +216,7 @@ http://<host>/handlers/email
 
 | Parameter (Value-Type) | Description |
 | ---------------------- | ----------- |
-| topic (str) | A unique topic name (tag) to identify this handler. It should only contain alphanumeric characters. |
+| topic (str) | A **case-insensitive** unique topic name (tag) to identify this handler. It should only contain alphanumeric characters. Noted that the string will be lowercased internally. |
 | settings (json map) | A JSON map of settings (i.e. server, port, auth, ...) to use instead of global email handler settings (see below) |
 
 ##### Example
@@ -228,7 +228,7 @@ POST http://127.0.0.1/handlers/email
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 ###### Result
@@ -238,7 +238,7 @@ STATUS 200
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 #### PUT /handlers/email/:topic
@@ -276,7 +276,7 @@ STATUS 200
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 
@@ -386,17 +386,18 @@ GET http://127.0.0.1/notifications/
 
 ```
 STATUS 200
-BODY [{"content": "Patient with ID 1233 checked in", "topic": "IRB",
+BODY [{"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 10, "id": 2},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 15, "id": 3},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 20, "id": 4}]
 ```
 
 #### GET /notifications/:topic
 
-Get a list of notifications of the specified topic.
+Get a list of notifications of the specified topic. Noted that the `:topic` is
+case-insensitive and will be lowercased internally.
 
 ##### URL
 
@@ -424,15 +425,16 @@ GET http://127.0.0.1/notifications/IRB?fromTime=15&toTime=30
 
 ```
 STATUS 200
-BODY [{"content": "Patient with ID 1233 checked in", "topic": "IRB",
+BODY [{"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 15},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 20}]
 ```
 
 #### POST /notifications/:topic
 
-Send a notification for the specified topic.
+Send a notification for the specified topic. Noted that the `:topic` is
+case-insensitive and will be lowercased internally.
 
 ##### URL
 

@@ -69,7 +69,7 @@ class NotificationServiceTestCase(unittest.TestCase):
         initializeDatabase(self.databasePath)
         self.database = sqlite3.connect(self.databasePath)
         self.database.row_factory = sqlite3.Row
-        self.topic = 'TS'
+        self.topic = 'ts'
         self.fileArchivePath = mkdtemp()
         self.insertTestData()
 
@@ -82,9 +82,11 @@ class NotificationServiceTestCase(unittest.TestCase):
 
 
     def testArchiveNotification(self):
-        notification = dict(content='Testing __archiveNotification',
-                title='Test')
         topic = 'TS'
+        title = 'Test'
+        notification = dict(
+                content='Testing __archiveNotification',
+                title=title)
         ns = NotificationService(topic, self.database)
         result = ns._archiveNotification(notification)
 
@@ -93,8 +95,8 @@ class NotificationServiceTestCase(unittest.TestCase):
         row = cur.fetchone()
 
         self.assertIsNotNone(row)
-        self.assertEqual('TS', row['topic'])
-        self.assertEqual('Test', row['title'])
+        self.assertEqual(topic.lower(), row['topic'])
+        self.assertEqual(title, row['title'])
         self.assertTrue(result)
 
 
@@ -114,10 +116,10 @@ class NotificationServiceTestCase(unittest.TestCase):
         ns = NotificationService(topic, self.database, self.fileArchivePath)
         result = ns._archiveAttachments(notification)
 
-        self.assertTrue('TS' in listdir(self.fileArchivePath))
+        self.assertTrue(topic.lower() in listdir(self.fileArchivePath))
         for attachment in notification['attachments']:
-            self.assertTrue(attachment['filename'] in listdir(path.join(self.fileArchivePath, 'TS')))
-            with open(path.join(self.fileArchivePath, 'TS', attachment['filename']), 'rb') as f:
+            self.assertTrue(attachment['filename'] in listdir(path.join(self.fileArchivePath, topic.lower())))
+            with open(path.join(self.fileArchivePath, topic.lower(), attachment['filename']), 'rb') as f:
                 data = f.read()
                 self.assertEqual(attachment['content'],
                                  b64encode(data).decode('utf-8'))
@@ -139,12 +141,12 @@ class NotificationServiceTestCase(unittest.TestCase):
         ns = NotificationService(topic, self.database, self.fileArchivePath)
         result = ns._archiveAttachments(notification)
     
-        self.assertTrue('TS' in listdir(self.fileArchivePath))
-        self.assertFalse('TestFile.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
-        self.assertFalse('TestFile2.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
-        self.assertTrue('TestFile3.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
+        self.assertTrue(topic.lower() in listdir(self.fileArchivePath))
+        self.assertFalse('TestFile.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
+        self.assertFalse('TestFile2.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
+        self.assertTrue('TestFile3.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
 
-        with open(path.join(self.fileArchivePath, 'TS', 'TestFile3.csv'), 'rb') as f:
+        with open(path.join(self.fileArchivePath, topic.lower(), 'TestFile3.csv'), 'rb') as f:
             data = f.read()
             self.assertEqual(notification['attachments'][2]['content'],
                              b64encode(data).decode('utf-8'))
@@ -166,22 +168,22 @@ class NotificationServiceTestCase(unittest.TestCase):
         ns = NotificationService(topic, self.database, self.fileArchivePath)
         result = ns._archiveAttachments(notification)
 
-        self.assertTrue('TS' in listdir(self.fileArchivePath))
-        self.assertTrue('TestFile.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
-        self.assertTrue('TestFile_1.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
-        self.assertTrue('TestFile_2.csv' in listdir(path.join(self.fileArchivePath, 'TS')))
+        self.assertTrue(topic.lower() in listdir(self.fileArchivePath))
+        self.assertTrue('TestFile.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
+        self.assertTrue('TestFile_1.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
+        self.assertTrue('TestFile_2.csv' in listdir(path.join(self.fileArchivePath, topic.lower())))
 
-        with open(path.join(self.fileArchivePath, 'TS', 'TestFile.csv'), 'rb') as f:
+        with open(path.join(self.fileArchivePath, topic.lower(), 'TestFile.csv'), 'rb') as f:
             data = f.read()
             self.assertEqual(notification['attachments'][0]['content'],
                              b64encode(data).decode('utf-8'))
 
-        with open(path.join(self.fileArchivePath, 'TS', 'TestFile_1.csv'), 'rb') as f:
+        with open(path.join(self.fileArchivePath, topic.lower(), 'TestFile_1.csv'), 'rb') as f:
             data = f.read()
             self.assertEqual(notification['attachments'][1]['content'],
                              b64encode(data).decode('utf-8'))
 
-        with open(path.join(self.fileArchivePath, 'TS', 'TestFile_2.csv'), 'rb') as f:
+        with open(path.join(self.fileArchivePath, topic.lower(), 'TestFile_2.csv'), 'rb') as f:
             data = f.read()
             self.assertEqual(notification['attachments'][2]['content'],
                              b64encode(data).decode('utf-8'))

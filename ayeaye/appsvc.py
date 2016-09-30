@@ -118,7 +118,7 @@ class NotificationHandlerService(object):
             cur = self.db.cursor()
             cur.execute(
                     'SELECT topic, settings FROM handler WHERE topic = ?',
-                    (topic, ))
+                    (topic.lower(), ))
             handler = cur.fetchone()
         except sqlite3.Error as e:
             LOGGER.error(e)
@@ -139,7 +139,7 @@ class NotificationService(object):
     def __init__(self, topic='', database=None, attachmentsDir=None):
         self.db = database
         self.attachmentsDir = attachmentsDir
-        self.topic = topic
+        self.topic = topic.lower()
         # TODO: Would make sense to have a fallback/default notification handler
         if len(topic) > 0:
             self.notificationHandler = self.__getNotificationHandler(topic)
@@ -170,6 +170,7 @@ class NotificationService(object):
     def aNotificationHistoryByTopicAndTime(self, topic, fromTime=None, toTime=None):
         try:
             cur = self.db.cursor()
+            topic = topic.lower()
 
             if toTime is not None and fromTime is None:
                 qry = '''SELECT time, topic, title, content, send_failed
@@ -305,7 +306,7 @@ class NotificationService(object):
                 SELECT name, settings, handler_type FROM handler JOIN handler_type ON
                     handler.handler_type = handler_type.id
                     WHERE topic = ?
-            ''', (topic, ))
+            ''', (topic.lower(), ))
             handler = cur.fetchone()
         except sqlite3.Error as e:
             LOGGER.error(str(e))
@@ -314,7 +315,7 @@ class NotificationService(object):
             cur.close()
 
         if handler is None:
-            raise NotFoundError('No such topic '+topic)
+            raise NotFoundError('No such topic '+ topic.lower())
 
         # If no settings were specified for that handler use the global ones
         if (handler[1] is None) or (len(handler[1]) == 0):

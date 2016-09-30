@@ -19,6 +19,7 @@ MAIL_USER = 'vagrant'
 MAIL_PASSWORD = 'vagrant'
 
 
+''' Compare the received email with the notification. '''
 def notificationReceived(notification):
     with open(TEST_NOTIFICATION_FILE, 'r') as f:
         msg = email.message_from_file(f)
@@ -106,7 +107,7 @@ class ApiWithTestData(unittest.TestCase):
 
     def insertTestData(self):
         tsHandler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -116,7 +117,7 @@ class ApiWithTestData(unittest.TestCase):
                     auth=0,
                     starttls=0))
         irbHandler = dict(
-                topic='IRB',
+                topic='irb',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -127,8 +128,8 @@ class ApiWithTestData(unittest.TestCase):
                     starttls=0))
         handlers = [tsHandler, irbHandler]
         notifications = [
-                (10, 'TS', 'N1', 'C1'), (15, 'TS', 'N2', 'C2'),
-                (20, 'IRB', 'N3', 'C3'), (25, 'IRB', 'N4', 'C4')]
+                (10, 'ts', 'N1', 'C1'), (15, 'ts', 'N2', 'C2'),
+                (20, 'irb', 'N3', 'C3'), (25, 'irb', 'N4', 'C4')]
         cur = self.database.cursor()
         cur.execute('''
             INSERT INTO global_setting (handler_type, settings)
@@ -217,7 +218,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
                 auth=0,
                 starttls=0)
         handler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -340,7 +341,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 auth=0,
                 starttls=0)
         handler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -350,7 +351,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                     auth=0,
                     starttls=0))
         authHandler = dict(
-                topic='IRB',
+                topic='irb',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -362,7 +363,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                     user=MAIL_USER,
                     password=MAIL_PASSWORD))
         sslHandler = dict(
-                topic='CRA',
+                topic='cra',
                 settings=dict(
                     server='127.0.0.1',
                     port=4650,
