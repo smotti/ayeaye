@@ -11,7 +11,7 @@ setup(name='ayeaye',
     package_data={'ayeaye': ['schema.sql']},
     data_files=[('/usr/bin', ['ayeaye/ayeaye']),
                 ('/etc/systemd/system', ['resources/ayeaye.service']),
-                ('/etc/systemd/system/ayeaye.service.d', ['resources/ayeaye.conf'])
+                ('/etc/systemd/system/ayeaye.service.d', ['resources/ayeaye.conf']),
                 ('/var/lib/medicustek/ayeaye', ['requirements.txt'])]
 #    install_requires=['arrow', 'flask', 'flask-cors']
     )
