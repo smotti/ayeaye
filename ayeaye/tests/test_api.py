@@ -6,9 +6,11 @@ import json
 import ayeaye
 from api import APP
 import sqlite3
-from tempfile import mkstemp
+from tempfile import mkstemp, mkdtemp
+from shutil import rmtree
 from time import sleep
-import base64
+from base64 import b64encode, b64decode
+import email
 import unittest
 
 
@@ -17,12 +19,28 @@ MAIL_USER = 'vagrant'
 MAIL_PASSWORD = 'vagrant'
 
 
-def notificationReceived(title):
+''' Compare the received email with the notification. '''
+def notificationReceived(notification):
     with open(TEST_NOTIFICATION_FILE, 'r') as f:
-        for l in f:
-            if l.startswith('Subject: ' + title):
-                return True
-    return False
+        msg = email.message_from_file(f)
+        title = msg['Subject']
+        content = ''
+        fileContents = list()
+
+        for idx, payload in enumerate(msg.get_payload()):
+            if idx == 0:
+                content = payload.get_payload()
+            else:
+                fileContents.append(payload.get_payload())
+
+        compareResult = list()
+        compareResult.append(title == notification['title'])
+        compareResult.append(content == notification['content'])
+        if 'attachments' in notification:
+            for f1, f2 in zip(notification['attachments'], fileContents):
+                compareResult.append(b64decode(f1['content']) == b64decode(f2))
+
+        return all(compareResult)
 
 
 class ApiTestCase(unittest.TestCase):
@@ -84,11 +102,12 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(sorted(newSettings),
                 sorted(json.loads(rv.get_data().decode('utf-8'))))
 
+
 class ApiWithTestData(unittest.TestCase):
 
     def insertTestData(self):
         tsHandler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -98,7 +117,7 @@ class ApiWithTestData(unittest.TestCase):
                     auth=0,
                     starttls=0))
         irbHandler = dict(
-                topic='IRB',
+                topic='irb',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -109,8 +128,8 @@ class ApiWithTestData(unittest.TestCase):
                     starttls=0))
         handlers = [tsHandler, irbHandler]
         notifications = [
-                (10, 'TS', 'N1', 'C1'), (15, 'TS', 'N2', 'C2'),
-                (20, 'IRB', 'N3', 'C3'), (25, 'IRB', 'N4', 'C4')]
+                (10, 'ts', 'N1', 'C1'), (15, 'ts', 'N2', 'C2'),
+                (20, 'irb', 'N3', 'C3'), (25, 'irb', 'N4', 'C4')]
         cur = self.database.cursor()
         cur.execute('''
             INSERT INTO global_setting (handler_type, settings)
@@ -199,7 +218,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
                 auth=0,
                 starttls=0)
         handler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -265,11 +284,11 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
         responseData = json.loads(rv.get_data().decode('utf-8'))
 
         cur = self.database.cursor()
-        cur.execute('SELECT * FROM handler WHERE topic = \'IRB\'')
+        cur.execute('SELECT * FROM handler WHERE topic = \'{}\''.format(handler['topic'].lower()))
         fromDatabase = cur.fetchone()
 
         self.assertIsNotNone(fromDatabase)
-        self.assertEqual(responseData['topic'], fromDatabase[2])
+        self.assertEqual(responseData['topic'].lower(), fromDatabase[2])
         self.assertEqual(rv.status_code, 200)
 
 
@@ -293,7 +312,7 @@ class ApiHandlersEmailTestCase(unittest.TestCase):
 
         cur = self.database.cursor()
         cur.row_factory = sqlite3.Row
-        cur.execute('SELECT settings FROM handler WHERE topic = ?', (topic, ))
+        cur.execute('SELECT settings FROM handler WHERE topic = ?', (topic.lower(), ))
         settings = json.loads(cur.fetchone()['settings'])
 
         self.assertEqual(1, settings['starttls'])
@@ -322,7 +341,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                 auth=0,
                 starttls=0)
         handler = dict(
-                topic='TS',
+                topic='ts',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -332,7 +351,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                     auth=0,
                     starttls=0))
         authHandler = dict(
-                topic='IRB',
+                topic='irb',
                 settings=dict(
                     server='127.0.0.1',
                     port=2525,
@@ -344,7 +363,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
                     user=MAIL_USER,
                     password=MAIL_PASSWORD))
         sslHandler = dict(
-                topic='CRA',
+                topic='cra',
                 settings=dict(
                     server='127.0.0.1',
                     port=4650,
@@ -375,6 +394,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
     def setUp(self):
         self.databaseFd, APP.config['DATABASE'] = mkstemp(suffix='test.db')
+        APP.config['ATTACHMENTS_DIR'] = mkdtemp()
         APP.config['TESTING'] = True
         self.app = APP.test_client()
         with APP.app_context():
@@ -388,6 +408,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
         close(self.databaseFd)
         unlink(APP.config['DATABASE'])
         remove(TEST_NOTIFICATION_FILE)
+        rmtree(APP.config['ATTACHMENTS_DIR'])
 
 
     def testSendNotificationWithGlobalSettings(self):
@@ -400,7 +421,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
 
     def testSendNotificationWithHandlerSettings(self):
@@ -413,19 +434,26 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
-    def testSendNotificationWithLog(self):
+    def testSendNotificationWithAttachments(self):
         topic = 'TS'
-        notification = dict(title='SendLog', content='Test 1 2 3',
-                attachments=[{"filename": "FN", "content": base64.b64encode(b"File content").decode('utf-8')}])
+        notification = dict(title='SendLog',
+                content='Test 1 2 3',
+                attachments=[{"filename": "TestFile1",
+                              "content": b64encode(b"This is the content of the file1.").decode('utf-8'),
+                              "backup": True},
+                             {"filename": "TestFile2",
+                              "content": b64encode(b"This is the content of the file2.").decode('utf-8'),
+                              "backup": False}])
         rv = self.app.post(
                 '/notifications/'+topic,
                 data=json.dumps(notification),
                 content_type='application/json')
+
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
     def testSendNotificationUsingSMTPAUTH(self):
         topic = 'IRB'
@@ -437,7 +465,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
     def testSendNotificationUsingSMTPS(self):
         topic = 'CRA'
@@ -449,7 +477,7 @@ class ApiSendNotificationTestCase(unittest.TestCase):
 
         sleep(1)
         self.assertEqual(200, rv.status_code)
-        self.assertTrue(notificationReceived(notification['title']))
+        self.assertTrue(notificationReceived(notification))
 
 
 if __name__ == '__main__':

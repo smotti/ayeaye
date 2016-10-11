@@ -68,6 +68,8 @@ optional arguments:
   -p PORT, --port PORT  The port of the HTTP REST API
   -d PATH, --database DBPATH
                         Path to the sqlite3 database
+  -D PATH, --attachmentsDir ATTACHMENT_PATH
+                        Path for archiving notification attachments
   -v, --verbose         Verbose output
 ```
 
@@ -166,7 +168,7 @@ GET http://127.0.0.1/handlers/email
 
 ```
 STATUS 200
-BODY [{"topic": "IRB",
+BODY [{"topic": "irb",
        "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
                     "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
                     "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
@@ -194,7 +196,7 @@ GET http://127.0.0.1/handlers/email/IRB
 
 ```
 STATUS 200
-BODY [{"topic": "IRB",
+BODY [{"topic": "irb",
        "settings": {"auth": 1, "server": "127.0.0.1", "port": 465,
                     "starttls": 0, "ssl": 1, "fromAddr": "docking@medicustek.com",
                     "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]}}]
@@ -214,7 +216,7 @@ http://<host>/handlers/email
 
 | Parameter (Value-Type) | Description |
 | ---------------------- | ----------- |
-| topic (str) | A unique topic name (tag) to identify this handler. It should only contain alphanumeric characters. |
+| topic (str) | A **case-insensitive** unique topic name (tag) to identify this handler. It should only contain alphanumeric characters. Noted that the string will be lowercased internally. |
 | settings (json map) | A JSON map of settings (i.e. server, port, auth, ...) to use instead of global email handler settings (see below) |
 
 ##### Example
@@ -226,7 +228,7 @@ POST http://127.0.0.1/handlers/email
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 ###### Result
@@ -236,7 +238,7 @@ STATUS 200
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 #### PUT /handlers/email/:topic
@@ -274,7 +276,7 @@ STATUS 200
 BODY {"settings": {"starttls": 0, "auth": 1, "server": "127.0.0.1", "port": 465,
                    "ssl": 1, "fromAddr": "docking@medicustek.com",
                    "toAddr": ["employee0@medicustek.com, cra@medicustek.com"]},
-      "topic": "IRB"} 
+      "topic": "irb"} 
 ```
 
 
@@ -384,17 +386,18 @@ GET http://127.0.0.1/notifications/
 
 ```
 STATUS 200
-BODY [{"content": "Patient with ID 1233 checked in", "topic": "IRB",
+BODY [{"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 10, "id": 2},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 15, "id": 3},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 20, "id": 4}]
 ```
 
 #### GET /notifications/:topic
 
-Get a list of notifications of the specified topic.
+Get a list of notifications of the specified topic. Noted that the `:topic` is
+case-insensitive and will be lowercased internally.
 
 ##### URL
 
@@ -422,15 +425,16 @@ GET http://127.0.0.1/notifications/IRB?fromTime=15&toTime=30
 
 ```
 STATUS 200
-BODY [{"content": "Patient with ID 1233 checked in", "topic": "IRB",
+BODY [{"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 15},
-      {"content": "Patient with ID 1233 checked in", "topic": "IRB",
+      {"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 20}]
 ```
 
 #### POST /notifications/:topic
 
-Send a notification for the specified topic.
+Send a notification for the specified topic. Noted that the `:topic` is
+case-insensitive and will be lowercased internally.
 
 ##### URL
 
@@ -444,7 +448,7 @@ http://<host>/notifications/
 | ---------------------- | ----------- |
 | title (str) | The title/subject of the notification |
 | content (str) | The content of the notification |
-| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "log cont"(base64 encoded)}...]```|
+| attachments (list) | List of files to be sent as attchments <br> ```[{"filename": "f1.log", "content": "SSd="(base64 encoded), "backup": True}, ...]```|
 
 ##### Example
 
@@ -452,7 +456,14 @@ http://<host>/notifications/
 
 ```
 POST http://127.0.0.1/notifications/IRB
-BODY {"title": "Patient Check-In", "content": "Patient with ID 1233 checked in", "attachments": [{"filename": "f1.log", "content": "log cont"}]}
+BODY {"title": "Patient Check-In",
+      "content": "Patient with ID 1233 checked in",
+      "attachments": [{"filename": "f1.log",
+                       "content": "SSdtIGEgdGVhcG90IQ==",
+                       "backup": False},
+                      {"filename": "file1.csv",
+                       "content": "SSdtIGEgY29mZmVlcG90IQ==",
+                       "backup": True}]}
 ```
 
 ###### Result

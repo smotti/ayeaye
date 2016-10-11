@@ -1,8 +1,10 @@
-from ayeaye.error import InternalError, UnavailableError, NotFoundError
+from ayeaye.error import InternalError, UnavailableError, NotFoundError, MissingAttributeError, BadRequestError
 import json
 from logging import getLogger
 from ayeaye.mtemail import EmailNotificationService
 import sqlite3
+from base64 import b64decode
+import os
 from time import time
 
 
@@ -93,6 +95,10 @@ class NotificationHandlerService(object):
 
 
     def addEmailHandler(self, handler):
+        # Check arguments
+        if set(handler.keys()).issuperset({'topic', 'settings'}) is False:
+            raise MissingAttributeError('Required attributes: topic and settings')
+
         try:
             cur = self.db.cursor()
             cur.execute('''
@@ -116,7 +122,7 @@ class NotificationHandlerService(object):
             cur = self.db.cursor()
             cur.execute(
                     'SELECT topic, settings FROM handler WHERE topic = ?',
-                    (topic, ))
+                    (topic.lower(), ))
             handler = cur.fetchone()
         except sqlite3.Error as e:
             LOGGER.error(e)
@@ -134,9 +140,10 @@ class NotificationHandlerService(object):
 
 class NotificationService(object):
 
-    def __init__(self, topic='', database=None):
+    def __init__(self, topic='', database=None, attachmentsDir=None):
         self.db = database
-        self.topic = topic
+        self.attachmentsDir = attachmentsDir
+        self.topic = topic.lower()
         # TODO: Would make sense to have a fallback/default notification handler
         if len(topic) > 0:
             self.notificationHandler = self.__getNotificationHandler(topic)
@@ -167,6 +174,7 @@ class NotificationService(object):
     def aNotificationHistoryByTopicAndTime(self, topic, fromTime=None, toTime=None):
         try:
             cur = self.db.cursor()
+            topic = topic.lower()
 
             if toTime is not None and fromTime is None:
                 qry = '''SELECT time, topic, title, content, send_failed
@@ -211,16 +219,16 @@ class NotificationService(object):
             elif toTime is not None and fromTime is not None:
                 qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ? and time <= ? ORDER BY time LIMIT ? OFFSET ?'''
+                    WHERE time >= ? and time <= ? ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, toTime, limit, offset))
             elif toTime is None and fromTime is not None:
                 qry = '''SELECT id, time, topic, title, content, send_failed
                     FROM notification_archive
-                    WHERE time >= ? ORDER BY time LIMIT ? OFFSET ?'''
+                    WHERE time >= ? ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (fromTime, limit, offset))
             else:
                 qry = '''SELECT id, time, topic, title, content, send_failed
-                    FROM notification_archive ORDER BY time LIMIT ? OFFSET ?'''
+                    FROM notification_archive ORDER BY time DESC LIMIT ? OFFSET ?'''
                 cur.execute(qry, (limit, offset))
 
             notifications = cur.fetchall()
@@ -248,7 +256,12 @@ class NotificationService(object):
             raise InternalError('Failed to send notification')
         else:
             self._archiveNotification(notification)
-            return result
+        
+        if 'attachments' in notification:
+            try:
+                self._archiveAttachments(notification)
+            except Exception as e:
+                raise InternalError('Failed to archive attachments: {}'.format(str(e)))
 
 
     def _archiveNotification(self, notification, failed=False):
@@ -267,6 +280,29 @@ class NotificationService(object):
             cur.close()
 
 
+    def _archiveAttachments(self, notification):
+        dir = os.path.join(self.attachmentsDir, self.topic)
+        try:
+            os.makedirs(os.path.join(self.attachmentsDir, self.topic), exist_ok=True)
+        except Exception as e:
+            msg = 'Unable to create directory for storing attachments: {}'.format(str(e))
+            LOGGER.error(msg)
+            raise InternalError(msg)
+
+        for attachment in notification['attachments']:
+            if attachment.get('backup') is True:
+                try:
+                    fileName = self._incrementNameIfExist(dir, attachment['filename'])
+                    fileData = b64decode(attachment['content'])
+                    with open(os.path.join(dir, fileName), 'wb') as f:
+                        f.write(fileData)
+                except Exception as e:
+                    msg = 'Unable to store attachment {}: {}'.format(
+                            attachment['filename'], str(e))
+                    LOGGER.error(msg)
+                    raise InternalError(msg)
+
+
     def __getNotificationHandler(self, topic):
         try:
             cur = self.db.cursor()
@@ -274,7 +310,7 @@ class NotificationService(object):
                 SELECT name, settings, handler_type FROM handler JOIN handler_type ON
                     handler.handler_type = handler_type.id
                     WHERE topic = ?
-            ''', (topic, ))
+            ''', (topic.lower(), ))
             handler = cur.fetchone()
         except sqlite3.Error as e:
             LOGGER.error(str(e))
@@ -283,7 +319,7 @@ class NotificationService(object):
             cur.close()
 
         if handler is None:
-            raise NotFoundError('No such topic '+topic)
+            raise NotFoundError('No such topic '+ topic.lower())
 
         # If no settings were specified for that handler use the global ones
         if (handler[1] is None) or (len(handler[1]) == 0):
@@ -307,3 +343,24 @@ class NotificationService(object):
             return EmailNotificationService(settings)
         else:
             raise UnavailableError('No notification handler found for topic')
+
+
+    # Append a number if the file name exists
+    # Ex: if 'filename.csv'  exists in path, it will become 'filename_1.csv'
+    @staticmethod
+    def _incrementNameIfExist(path, fileName):
+        if not fileName in os.listdir(path):
+            return fileName
+        try:
+            (name, extension) = fileName.rsplit('.', 1)
+            extension = '.' + extension
+        except ValueError: # No file extension
+            name = fileName
+            extension = ''
+
+        duplicatedNumber = 0;
+        while True:
+            duplicatedNumber += 1;
+            fileName = name + '_{}'.format(duplicatedNumber) + extension
+            if not fileName in os.listdir(path):
+                return fileName
