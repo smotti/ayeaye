@@ -1,1 +1,3 @@
 include requirements.txt
+include resources/ayeaye.service
+include resources/ayeaye.conf
