@@ -1,0 +1,12 @@
+[Unit]
+Description="MedicusTek Notification Service"
+
+[Service]
+Type=simple
+ExecStart=/bin/sh -c "exec &>> $LOG /usr/bin/ayeaye -l $LISTEN -p $PORT -d $DB"
+KillMode=control-group
+TimeoutSec=5
+
+[Install]
+WantedBy=multi-user.target
+

@@ -9,6 +9,8 @@ setup(name='ayeaye',
     scripts=['ayeaye/ayeaye'],
     package_dir={'ayeaye': 'ayeaye'},
     package_data={'ayeaye': ['schema.sql']},
-    data_files=[('/usr/local/bin', ['ayeaye/ayeaye'])]
+    data_files=[('/usr/bin', ['ayeaye/ayeaye']),
+                ('/etc/systemd/system', ['resources/ayeaye.service']),
+                ('/etc/systemd/system/ayeaye.service.d', ['resources/ayeaye.conf'])]
 #    install_requires=['arrow', 'flask', 'flask-cors']
     )
