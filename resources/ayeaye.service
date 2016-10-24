@@ -6,6 +6,8 @@ Type=simple
 ExecStart=/bin/sh -c "exec &>> $LOG /usr/bin/ayeaye -l $LISTEN -p $PORT -d $DB"
 KillMode=control-group
 TimeoutSec=5
+User=ayeaye
+Group=medicustek
 
 [Install]
 WantedBy=multi-user.target
