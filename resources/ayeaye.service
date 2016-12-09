@@ -8,6 +8,7 @@ KillMode=control-group
 TimeoutSec=5
 User=ayeaye
 Group=medicustek
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
