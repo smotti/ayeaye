@@ -4,7 +4,7 @@ Description='Purge ayeaye notifications'
 [Service]
 Type=oneshot
 Environment=AYEAYE_DB=/srv/ayeaye/ayeaye.db RETENTION_PERIOD='-30 days'
-ExecStart=/bin/bash -c "exec &>> /var/log/ayeaye/ayeaye-purge-notifications.log /usr/bin/ayeaye-purge"
+ExecStart=/bin/bash -c "exec &>> /var/log/ayeaye/ayeaye-purge-notifications.log /usr/bin/ayeaye-purge.py"
 KillMode=control-group
 User=ayeaye
 Group=medicustek
