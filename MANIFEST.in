@@ -1,3 +1,6 @@
 include requirements.txt
 include resources/ayeaye.service
 include resources/ayeaye.conf
+include resources/ayeaye-purge
+include resources/ayeaye-purge-notifications.timer
+include resources/ayeaye-purge-notifications.service
