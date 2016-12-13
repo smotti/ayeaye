@@ -1,0 +1,9 @@
+[Unit]
+Description='Timer to purge notifications stored by ayeaye'
+
+[Timer]
+OnBootSec=120
+OnUnitInactiveSec=daily
+
+[Install]
+WantedBy=multi-user.target
