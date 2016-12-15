@@ -244,6 +244,23 @@ class NotificationService(object):
             return [rowToDict(row) for row in notifications]
 
 
+    def deleteAllNotifications(self):
+        try:
+            cur = self.db.cursor()
+        except Exception as e:
+            LOGGER.error(str(e))
+            raise InternalError('Failed to get database cursor while deleting all notifications')
+
+        try:
+            cur.execute('''DELETE FROM notification_archive''')
+            self.db.commit()
+        except sqlite3.Error as e:
+            LOGGER.error(str(e))
+            raise InternalError('Failed to delete notifications')
+        finally:
+            cur.close()
+
+
     def sendNotification(self, notification):
         if any(list(map(lambda k: k not in notification.keys(), ['title', 'content']))):
             raise MissingAttributeError('Required attributes: title and content')

@@ -9,3 +9,4 @@ pyvenv/
 dist/
 ayeaye.egg-info
 build/
+dev-env/

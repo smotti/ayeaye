@@ -138,7 +138,7 @@ def emailHandlerByTopic(topic=''):
         return nhs.addEmailHandler(handler)
 
 
-@APP.route('/notifications/', methods=['GET'])
+@APP.route('/notifications/', methods=['GET','DELETE'])
 @responseMiddleware
 def notifications():
     if request.method == 'GET':
@@ -149,6 +149,9 @@ def notifications():
             lambda t: timeRange.update({t[0] : t[1]}),
             [t for t in args.items() if t[0] in ['fromTime', 'toTime', 'offset',  'limit']]))
         return ns.aNotificationHistoryByTime(**timeRange)
+    elif request.method == 'DELETE':
+        ns = NotificationService(database=DATABASE)
+        ns.deleteAllNotifications()
     else:
         raise TeapotError('I\'m a teapot')
 

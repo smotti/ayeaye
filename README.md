@@ -394,6 +394,31 @@ BODY [{"content": "Patient with ID 1233 checked in", "topic": "irb",
        "title": "Patient Check-In", "time": 20, "id": 4}]
 ```
 
+#### DELETE /notifications/
+
+Delete all notifications.
+
+##### URL
+
+```
+http://<host>/notifications/
+```
+
+##### Example
+
+###### Request
+
+```
+DELETE http://127.0.0.1/notifications/
+```
+
+###### Result
+
+```
+STATUS 200
+```
+
+
 #### GET /notifications/:topic
 
 Get a list of notifications of the specified topic. Noted that the `:topic` is

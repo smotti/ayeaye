@@ -29,26 +29,8 @@ def initializeDatabase(databasePath):
 
 class NotificationServiceTestCase(unittest.TestCase):
 
-    def insertTestData(self):
+    def insertTestData(self, handler, notifications):
         topic = self.topic
-        handler = dict(
-                topic=topic,
-                settings=dict(
-                    server='127.0.0.1',
-                    port=2525,
-                    toAddr=['TS@medicustek.com'],
-                    fromAddr='test@medicustek.com',
-                    ssl=0,
-                    auth=0,
-                    starttls=0))
-        notifications = [
-                dict(title='test', time=10, topic=topic),
-                dict(title='test', time=20, topic=topic),
-                dict(title='test', time=25, topic=topic),
-                dict(title='test', time=30, topic=topic),
-                dict(title='test', time=35, topic=topic),
-                dict(title='test', time=40, topic=topic)]
-
         cur = self.database.cursor()
         cur.execute('''
             INSERT INTO handler (topic, handler_type, settings)
@@ -69,9 +51,28 @@ class NotificationServiceTestCase(unittest.TestCase):
         initializeDatabase(self.databasePath)
         self.database = sqlite3.connect(self.databasePath)
         self.database.row_factory = sqlite3.Row
+
         self.topic = 'ts'
         self.fileArchivePath = mkdtemp()
-        self.insertTestData()
+        self.handler = dict(
+                topic=self.topic,
+                settings=dict(
+                    server='127.0.0.1',
+                    port=2525,
+                    toAddr=['TS@medicustek.com'],
+                    fromAddr='test@medicustek.com',
+                    ssl=0,
+                    auth=0,
+                    starttls=0))
+        self.notifications = [
+                dict(title='test', time=10, topic=self.topic),
+                dict(title='test', time=20, topic=self.topic),
+                dict(title='test', time=25, topic=self.topic),
+                dict(title='test', time=30, topic=self.topic),
+                dict(title='test', time=35, topic=self.topic),
+                dict(title='test', time=40, topic=self.topic)]
+
+        self.insertTestData(self.handler, self.notifications)
 
 
     def tearDown(self):
@@ -208,6 +209,13 @@ class NotificationServiceTestCase(unittest.TestCase):
         fromTime = 35
         result = ns.aNotificationHistoryByTime(fromTime)
         self.assertEqual(2, len(result))
+
+    def testDeleteAllNotificationsWithSomeNotificationsExpectingEmptyList(self):
+        ns = NotificationService(self.topic, self.database)
+        self.assertEqual(len(self.notifications), len(ns.aNotificationHistory()))
+
+        ns.deleteAllNotifications()
+        self.assertEqual(0, len(ns.aNotificationHistory()))
 
 
 if __name__ == '__main__':
