@@ -182,6 +182,15 @@ class ApiWithTestData(unittest.TestCase):
         self.assertEqual(2, len(data))
 
 
+    def testDeleteAllNotifications(self):
+        rv = self.app.delete('/notifications/')
+        self.assertEqual(200, rv.status_code)
+
+        rv = self.app.get('/notifications/')
+        data = json.loads(rv.get_data().decode('utf-8'))
+        self.assertEqual(0, len(data))
+
+
     def testNotificationHistoryByTime(self):
         rv = self.app.get('/notifications/IRB?fromTime=10&toTime=30')
         data = json.loads(rv.get_data().decode('utf-8'))
