@@ -79,10 +79,6 @@ optional arguments:
 
 * Clone repository
 
-```
-git clone git@gogs.medicustek.com:MantiS/notification-service.git
-```
-
 * Run VM via vagrant
 
 ```
